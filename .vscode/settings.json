@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "libpic30.h": "c",
+        "xc.h": "c",
+        "stdlib.h": "c"
+    }
+}

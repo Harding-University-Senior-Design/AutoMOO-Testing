@@ -1,0 +1,42 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Compile",
+            "type": "shell",
+            "command": "make -f nbproject/Makefile-default.mk SUBPROJECTS= .build-conf",
+            
+            "problemMatcher": {
+                "owner": "c",
+                "pattern": {
+                    "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
+                    "file": 1,
+                    "line": 2,
+                    "column": 3,
+                    "severity": 4,
+                    "message": 5
+                }            
+            },
+
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+
+            
+        },
+
+        {
+            "label": "Link",
+            "type": "shell",
+            "command": "make  -f nbproject/Makefile-default.mk dist/default/production/AutoMOO.X.production.hex",
+            "dependsOn": "Compile"
+        },
+
+        {
+            "label": "Make",
+            "type": "shell",
+            "command": "prjMakefilesGenerator %CD%",
+        }
+    ]
+}
