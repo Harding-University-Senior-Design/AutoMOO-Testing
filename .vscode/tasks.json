@@ -37,6 +37,19 @@
             "label": "Make",
             "type": "shell",
             "command": "prjMakefilesGenerator %CD%",
+        },
+
+        {
+            "label": "Upload",
+            "type": "shell",
+            "command": "ipecmd  /P24FJ128GA202 /F${cwd}/dist/default/production/${workspaceFolderBasename}.production.hex /M /TPPK3",
+
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            }
         }
+
+
     ]
 }
