@@ -20,3 +20,15 @@ funclist
 nbproject/Makefile-*
 disassembly/
 *.map
+History/*
+Project Logs for */*
+Project Outputs for */*
+*.PrjPCBStructure
+*.htm
+*.LOG
+*Preview
+*viewstate
+*.Dat
+*.pdf
+.zip
+*.OutJob
