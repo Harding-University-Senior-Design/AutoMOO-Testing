@@ -2,10 +2,17 @@
     "version": "2.0.0",
     "tasks": [
         {
+            "label": "Build",
+            "type": "shell",
+            "command": "cd ${fileDirname};make -f nbproject\\Makefile-default.mk SUBPROJECTS= .build-conf",
+        },
+
+        {
             "label": "Compile",
             "type": "shell",
-            "command": "make -f nbproject/Makefile-default.mk SUBPROJECTS= .build-conf",
-            
+            "command": "cd ${fileDirname};make  -f nbproject\\Makefile-default.mk dist/default/production/Serial.X.production.hex",
+            "dependsOn": "Build",
+
             "problemMatcher": {
                 "owner": "c",
                 "pattern": {
@@ -22,15 +29,6 @@
                 "kind": "build",
                 "isDefault": true
             }
-
-            
-        },
-
-        {
-            "label": "Link",
-            "type": "shell",
-            "command": "make  -f nbproject/Makefile-default.mk dist/default/production/AutoMOO.X.production.hex",
-            "dependsOn": "Compile"
         },
 
         {
@@ -42,7 +40,7 @@
         {
             "label": "Upload",
             "type": "shell",
-            "command": "ipecmd  /P24FJ128GA202 /F${cwd}/dist/default/production/${workspaceFolderBasename}.production.hex /M /TPPK3",
+            "command": "cd ${fileDirname};ipecmd  /P24FJ128GA202 /Fdist\\default\\production\\Serial.X.production.hex /M /TPPK3 /OL",
 
             "group": {
                 "kind": "test",

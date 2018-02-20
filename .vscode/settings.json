@@ -2,6 +2,8 @@
     "files.associations": {
         "libpic30.h": "c",
         "xc.h": "c",
-        "stdlib.h": "c"
+        "stdlib.h": "c",
+        "stdio.h": "c",
+        "mcc.h": "c"
     }
 }

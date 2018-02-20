@@ -33,3 +33,7 @@ Project Outputs for */*
 .zip
 *.OutJob
 *.Zip
+*.0
+*.1
+*.lck
+*.2
