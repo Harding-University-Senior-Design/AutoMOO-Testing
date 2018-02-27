@@ -3,28 +3,32 @@
 % in order to successfully cut a lawn.
 %******************************************************************************%
 function [] = pathing(yardFile)
-    yard = readYard(yardFile);
-    clf;
-    printYard(yard);
+yard = readYard(yardFile);
 
-    currentLocation = {2,20};
-    finished = 0;
-    count = 0;
-    justWentUp = 0;
-    while (~finished)
-        count = count +1;
-        yard{currentLocation{1}}(currentLocation{2}) = '.';
-        plot(currentLocation{1}, currentLocation{2}, '.', 'Color', 'red');
-        pause(0.05);   
+clf;
+printYard(yard);
 
-        if (yard{currentLocation{1}}(currentLocation{2}-1) == '0')
-            currentLocation = {currentLocation{1},(currentLocation{2}-1)};
+currentLocation = {2,20};
+finished = 0;
+count = 0;
+justWentUp = 0;
 
-        elseif (yard{currentLocation{1}+1}(currentLocation{2}) == '0')
-            currentLocation = {currentLocation{1}+1,(currentLocation{2})};
-        elseif (yard{currentLocation{1}-1}(currentLocation{2}) == '0')
-            currentLocation = {currentLocation{1}-1,(currentLocation{2})};
-        else
+
+while (~finished)
+    count = count +1;
+    yard{currentLocation{1}}(currentLocation{2}) = '.';
+    plot(currentLocation{1}, currentLocation{2}, '.', 'Color', 'red');
+    pause(0.05);
+    
+    if (yard{currentLocation{1}}(currentLocation{2}-1) == '0')
+        currentLocation = {currentLocation{1},(currentLocation{2}-1)};
+    elseif (yard{currentLocation{1}+1}(currentLocation{2}) == '0')
+        currentLocation = {currentLocation{1}+1,(currentLocation{2})};
+    elseif (yard{currentLocation{1}-1}(currentLocation{2}) == '0')
+        currentLocation = {currentLocation{1}-1,(currentLocation{2})};
+    else
+        if (yard{currentLocation{1}+1}(currentLocation{2}) == '*' || yard{currentLocation{1}-1}(currentLocation{2}) == '*')
+                    
             found = 0;
             while (~found)
                 if (yard{currentLocation{1}}(currentLocation{2}+1) == '*')
@@ -35,12 +39,20 @@ function [] = pathing(yardFile)
                 end
             end
             justWentUp = 1;
-        end
-
-        if (count == 10000)
-            finished = 1;
+            
+        else
+            if (yard{currentLocation{1}+1}(currentLocation{2}) == '.')
+                currentLocation = {currentLocation{1}+1,(currentLocation{2})};
+            elseif (yard{currentLocation{1}-1}(currentLocation{2}) == '.')
+                currentLocation = {currentLocation{1}-1,(currentLocation{2})};
+            end
         end
     end
+    
+    if (count == 10000)
+        finished = 1;
+    end
+end
 
 end
 
@@ -59,8 +71,6 @@ hold on;
 for idx = 1:length(yard)
     for jdx = 1:length(yard{1})
         if(yard{idx}(jdx) == '*')
-            plot(idx, jdx, '*', 'Color', 'black');
-        elseif(yard{idx}(jdx) == '1')
             plot(idx, jdx, '*', 'Color', 'black');
         elseif(yard{idx}(jdx) == '.')
             plot(idx, jdx, '.', 'Color', 'red');
