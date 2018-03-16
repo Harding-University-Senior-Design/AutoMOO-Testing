@@ -8,45 +8,43 @@ yard = readYard(yardFile);
 clf;
 printYard(yard);
 
-currentLocation = {2,20};
+currentLocation = {2,2};
 finished = 0;
 count = 0;
-justWentUp = 0;
 
+dir = 1;
 
 while (~finished)
     count = count +1;
+
     yard{currentLocation{1}}(currentLocation{2}) = '.';
     plot(currentLocation{1}, currentLocation{2}, '.', 'Color', 'red');
-    pause(0.05);
+    pause(0.02);
     
     if (yard{currentLocation{1}}(currentLocation{2}-1) == '0')
         currentLocation = {currentLocation{1},(currentLocation{2}-1)};
-    elseif (yard{currentLocation{1}+1}(currentLocation{2}) == '0')
-        currentLocation = {currentLocation{1}+1,(currentLocation{2})};
-    elseif (yard{currentLocation{1}-1}(currentLocation{2}) == '0')
-        currentLocation = {currentLocation{1}-1,(currentLocation{2})};
-    else
-        if (yard{currentLocation{1}+1}(currentLocation{2}) == '*' || yard{currentLocation{1}-1}(currentLocation{2}) == '*')
-                    
-            found = 0;
-            while (~found)
+        plot(currentLocation{1}, currentLocation{2}, '.', 'Color', 'red');
+    elseif (yard{currentLocation{1}+dir}(currentLocation{2}) == '0' || yard{currentLocation{1}+dir}(currentLocation{2}) == '.')
+        currentLocation = {currentLocation{1}+dir,(currentLocation{2})};
+    elseif (yard{currentLocation{1}+dir}(currentLocation{2}) == '*')
+        found = 0;
+        while (~found)
+            if (yard{currentLocation{1}}(currentLocation{2}+1) ~= '0' && 
+                yard{currentLocation{1}}(currentLocation{2}-1) ~= '0' && 
+                yard{currentLocation{1}-1}(currentLocation{2}) ~= '0' &&
+                yard{currentLocation{1}+1}(currentLocation{2}) ~= '0')
+                  plot(currentLocation{1}, currentLocation{2}, '*', 'Color', 'magenta');
+            end
                 if (yard{currentLocation{1}}(currentLocation{2}+1) == '*')
                     currentLocation = {currentLocation{1}-1,(currentLocation{2})};
                 else
                     found = 1;
                     currentLocation = {currentLocation{1},(currentLocation{2}+1)};
                 end
-            end
-            justWentUp = 1;
-            
-        else
-            if (yard{currentLocation{1}+1}(currentLocation{2}) == '.')
-                currentLocation = {currentLocation{1}+1,(currentLocation{2})};
-            elseif (yard{currentLocation{1}-1}(currentLocation{2}) == '.')
-                currentLocation = {currentLocation{1}-1,(currentLocation{2})};
-            end
         end
+        dir = dir * -1;
+        plot(currentLocation{1}, currentLocation{2}, '^', 'Color', 'blue');
+
     end
     
     if (count == 10000)
@@ -80,18 +78,5 @@ end
 %hold off;
 end
 
-%******************************************************************************%
-%selectNewSource - This function will determine the next location that will
-% be used from which to originate.
-%******************************************************************************%
-function [source] = selectNewSource(currentLocation, currentArea, yard)
-
-end
-
-%******************************************************************************%
-%move - This function will determine the next move location and will execute
-% that move.
-%******************************************************************************%
-function [] = move(currentLocation, yard, currentArea)
 
 end
