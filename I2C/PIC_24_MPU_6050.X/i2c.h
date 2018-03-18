@@ -1,4 +1,3 @@
-#define __PIC24FJ128GA202__
 #define FCY (_XTAL_FREQ / 2)
 #include "mcc_generated_files/mcc.h"
 #include <stdio.h>

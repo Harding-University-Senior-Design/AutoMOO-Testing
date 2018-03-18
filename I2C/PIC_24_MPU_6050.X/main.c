@@ -1,4 +1,4 @@
-#define __PIC24FJ128GA202__
+// #define __PIC24FJ128GA202__
 #define FCY (_XTAL_FREQ / 2)
 
 #include "mcc_generated_files/mcc.h"
@@ -9,52 +9,81 @@
 #include <xc.h>
 #include <math.h>
 
+#define MPU_6050_ADDR 0x68
+#define MPU_6050_GYRO_ST_ADDR 0x43
+#define MPU_6050_ACEL_ST_ADDR 0x3B
 #define ACCELEROMETER_SENSITIVITY 6215.0
 #define GYROSCOPE_SENSITIVITY 65.536
  
 #define M_PI 3.14159265359	    
  
 #define dt 0.01							// 10 ms sample rate!    
- 
-void ComplementaryFilter(short accData[3], short gyrData[3], float *pitch, float *roll)
+
+typedef struct MPU_6050_Module
 {
-    float pitchAcc, rollAcc;               
- 
-    // Integrate the gyroscope data -> int(angularSpeed) = angle
-    *pitch += ((float)gyrData[0] / GYROSCOPE_SENSITIVITY) * dt; // Angle around the X-axis
-    *roll -= ((float)gyrData[1] / GYROSCOPE_SENSITIVITY) * dt;    // Angle around the Y-axis
- 
-    // Compensate for drift with accelerometer data if !bullshit
-    // Sensitivity = -2 to 2 G at 16Bit -> 2G = 32768 && 0.5G = 8192
-    int forceMagnitudeApprox = abs(accData[0]) + abs(accData[1]) + abs(accData[2]);
-    if (forceMagnitudeApprox > 8192 && forceMagnitudeApprox < 32768)
-    {
-	// Turning around the X axis results in a vector on the Y-axis
-        pitchAcc = atan2f((float)accData[1], (float)accData[2]) * 180 / M_PI;
-        *pitch = *pitch * 0.98 + pitchAcc * 0.02;
- 
-	// Turning around the Y axis results in a vector on the X-axis
-        rollAcc = atan2f((float)accData[0], (float)accData[2]) * 180 / M_PI;
-        *roll = *roll * 0.98 + rollAcc * 0.02;
-    }
-} 
+	int x,
+		y,
+		z,
+		xOffset,
+		yOffset,
+		zOffset;
+}MPU_6050_Module;
 
-
-void readGyro(int *accelX, int *accelY, int *accelZ)
+typedef struct MPU_6050
 {
-    uint8_t accel[6];
-       
-    // I2C_ReadReg(0x68, 0x43, &accel[0]);
-    // I2C_ReadReg(0x68, 0x44, &accel[1]);
-    // I2C_ReadReg(0x68, 0x45, &accel[2]);
-    // I2C_ReadReg(0x68, 0x46, &accel[3]);
-    // I2C_ReadReg(0x68, 0x47, &accel[4]);
-    // I2C_ReadReg(0x68, 0x48, &accel[5]);
+	MPU_6050_Module	gyro,
+					accel;
 
-    I2C_ReadNReg(0x68, 0x43, &accel[0], 6);
-    *accelX = accel[0] << 8 | accel[1];
-    *accelY = accel[2] << 8 | accel[3];
-    *accelZ = accel[4] << 8 | accel[5];
+}MPU_6050;
+
+
+void readMotionData(int *dataX, int *dataY, int *dataZ, uint8_t moduleType )
+{
+    uint8_t data[6];
+
+    I2C_ReadNReg(MPU_6050_ADDR, moduleType, &data[0], 6);
+    *dataX = data[0] << 8 | data[1];
+    *dataY = data[2] << 8 | data[3];
+    *dataZ = data[4] << 8 | data[5];
+}
+
+void calibrateModule(int samples, int sampleDelay, MPU_6050_Module *imu, uint8_t moduleType)
+{
+	int x_offset_temp = 0,
+		y_offset_temp = 0,
+		z_offset_temp = 0,
+		x, y, z;
+
+	readMotionData(&x, &y, &z, moduleType);
+
+	int i = 0;
+	for (i = 0; i < samples; i++)
+	{
+		// __delay_ms(sampleDelay);
+		readMotionData(&x, &y, &z, moduleType);
+		x_offset_temp += x;
+		y_offset_temp += y;
+		z_offset_temp += z;
+	}
+
+	imu->xOffset= abs(x_offset_temp) / samples;
+	imu->yOffset = abs(y_offset_temp) / samples;
+	imu->zOffset = abs(z_offset_temp) / samples;
+	if (x_offset_temp > 0)imu->xOffset = -imu->xOffset;
+	if (y_offset_temp > 0)imu->yOffset = -imu->yOffset;
+	if (z_offset_temp > 0)imu->zOffset = -imu->zOffset;
+}
+
+void MPU_6050_Initialize(MPU_6050 *imu)
+{
+    I2C_Init();
+    __delay_ms(100);
+    I2C_WriteReg(0x68,0x6B,0x00);
+    __delay_ms(100);
+    I2C_WriteReg(0x68,0x1C,0x00);
+    __delay_ms(100);
+    // calibrateModule(200, 10, &imu->accel, MPU_6050_ACEL_ST_ADDR);
+	// calibrateModule(200, 10, &imu->gyro,  MPU_6050_GYRO_ST_ADDR);
 }
 
 
@@ -62,28 +91,68 @@ int main(void)
 {
     // initialize the device
     SYSTEM_Initialize();
-    __delay_ms(100);
-    I2C_Init();
-    __delay_ms(100);
-
-    I2C_WriteReg(0x68,0x6B,0x00);
-    __delay_ms(100);
+    __delay_ms(1000);
     
-    I2C_WriteReg(0x68,0x1C,0x00);
-    __delay_ms(100);
+	MPU_6050 imu;
+    printf("initializing\r\n");
+	MPU_6050_Initialize(&imu);    
+
+	long x_offset_temp = 0,
+	y_offset_temp = 0,
+	z_offset_temp = 0;
+	int x,y,z;
+
+	readMotionData(&x, &y, &z, MPU_6050_GYRO_ST_ADDR);
+
+	int i;
+	for (i = 0; i < 50; i++)
+	{
+		// __delay_ms(sampleDelay);
+		readMotionData(&x, &y, &z, MPU_6050_GYRO_ST_ADDR);
+		x_offset_temp += x;
+		y_offset_temp += y;
+		z_offset_temp += z;
+	}
+
+	int g,h,j;
+	g = x_offset_temp / 50;
+	h = y_offset_temp / 50;
+	j = z_offset_temp / 50;
+
+
+		//***********************
+    x_offset_temp = 0,
+	y_offset_temp = 0,
+	z_offset_temp = 0;
+
+
+	readMotionData(&x, &y, &z, MPU_6050_ACEL_ST_ADDR);
+
+	for (i = 0; i < 50; i++)
+	{
+		// __delay_ms(sampleDelay);
+		readMotionData(&x, &y, &z, MPU_6050_ACEL_ST_ADDR);
+		x_offset_temp += x;
+		y_offset_temp += y;
+		z_offset_temp += z;
+	}
+
+	int b,n,m;
+	b = x_offset_temp / 50;
+	n = y_offset_temp / 50;
+	m = z_offset_temp / 50;
+
+
     
     while (1)
     {
-        int x,y,z;
+        int x,y,z,r,t,s;
+        readMotionData(&x,&y,&z,MPU_6050_GYRO_ST_ADDR);
+        readMotionData(&r,&t,&s,MPU_6050_ACEL_ST_ADDR);
 
-        // readGyro(&x,&y,&z);
 
-        x = gg[0] << 8 | gg[1];
-        y = gg[2] << 8 | gg[3];
-        z = gg[4] << 8 | gg[5];
-        
-        printf("please work now %i | %i | %i \r\n",x, y, z);
-        __delay_ms(100);
+        printf("%i | %i | %i | %i | %i | %i\r\n",x-g,y-h,z-j, r-b, t-n, s-m);
+		__delay_ms(100);
     }
 
     return -1;
