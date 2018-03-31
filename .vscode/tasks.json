@@ -6,11 +6,10 @@
             "type": "shell",
             "command": "cd ${fileDirname};make -f nbproject\\Makefile-default.mk SUBPROJECTS= .build-conf",
         },
-
         {
             "label": "Compile",
             "type": "shell",
-            "command": "cd ${fileDirname};make  -f nbproject\\Makefile-default.mk dist/default/production/GY521_PIC.X.production.hex",
+            "command": "cd ${fileDirname};make  -f nbproject\\Makefile-default.mk dist/default/production/onceMoreUnto.X.production.hex",
             "dependsOn": "Build",
 
             "problemMatcher": {
@@ -40,7 +39,7 @@
         {
             "label": "Upload",
             "type": "shell",
-            "command": "cd ${fileDirname};ipecmd  /P24FJ128GA202 /Fdist\\default\\production\\GY521_PIC.X.production.hex /M /TPPK3 /OL",
+            "command": "cd ${fileDirname};ipecmd  /P24FJ128GA202 /Fdist\\default\\production\\onceMoreUnto.X.production.hex /M /TPPK3 /OL",
 
             "group": {
                 "kind": "test",

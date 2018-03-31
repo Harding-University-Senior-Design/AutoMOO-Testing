@@ -4,6 +4,10 @@
         "xc.h": "c",
         "stdlib.h": "c",
         "stdio.h": "c",
-        "mcc.h": "c"
+        "mcc.h": "c",
+        "i2c.h": "c",
+        "main.h": "c",
+        "math.h": "c",
+        "mpu6050.h": "c"
     }
 }

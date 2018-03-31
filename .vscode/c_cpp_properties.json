@@ -7,6 +7,7 @@
                 "C:/Program Files (x86)/Microchip/xc16/v1.33/include/*",
                 "C:/Program Files (x86)/Microchip/xc16/v1.33/support/PIC24F/h/*",
                 "C:/Program Files (x86)/Microchip/xc16/v1.33/support/PIC24F/inc/*",
+                "C:/Users/Adam/Documents/GitHub/AutoMOO-Testing/I2C/PIC_24_MPU_6050.X",
                 "${workspaceRoot}"
             ],
             "defines": [
@@ -20,11 +21,14 @@
                     "C:/Program Files (x86)/Microchip/xc16/v1.33/include/*",
                     "C:/Program Files (x86)/Microchip/xc16/v1.33/support/PIC24F/h/*",
                     "C:/Program Files (x86)/Microchip/xc16/v1.33/support/PIC24F/inc/*",
+                    "C:/Users/Adam/Documents/GitHub/AutoMOO-Testing/I2C/PIC_24_MPU_6050.X",
                     "${workspaceRoot}"
                 ],
                 "limitSymbolsToIncludedHeaders": true,
                 "databaseFilename": ""
-            }
+            },
+            "cStandard": "c11",
+            "cppStandard": "c++17"
         }
     ],
     "version": 3

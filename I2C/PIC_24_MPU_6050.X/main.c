@@ -1,159 +1,83 @@
-// #define __PIC24FJ128GA202__
-#define FCY (_XTAL_FREQ / 2)
-
-#include "mcc_generated_files/mcc.h"
+#include "main.h"
 #include "i2c.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <libpic30.h>
-#include <xc.h>
-#include <math.h>
+#include "MPU6050.h"
+uint8_t cccee[14];
 
-#define MPU_6050_ADDR 0x68
-#define MPU_6050_GYRO_ST_ADDR 0x43
-#define MPU_6050_ACEL_ST_ADDR 0x3B
-#define ACCELEROMETER_SENSITIVITY 6215.0
-#define GYROSCOPE_SENSITIVITY 65.536
- 
-#define M_PI 3.14159265359	    
- 
-#define dt 0.01							// 10 ms sample rate!    
+#define RISING_EDGE_TRIGGER_SETTING 0b011
+#define FALLING_EDGE_TRIGGER_SETTING 0b010
 
-typedef struct MPU_6050_Module
+void IC1_Initialize(void)
 {
-	int x,
-		y,
-		z,
-		xOffset,
-		yOffset,
-		zOffset;
-}MPU_6050_Module;
+    IC1CON1 = 0x0000;
+    ANSBbits.ANSB14 = 0;
+	TRISBbits.TRISB14 = 1;
+	Nop();
+    
+    RPINR7bits.IC1R = 0b1110;
 
-typedef struct MPU_6050
-{
-	MPU_6050_Module	gyro,
-					accel;
-
-}MPU_6050;
-
-
-void readMotionData(int *dataX, int *dataY, int *dataZ, uint8_t moduleType )
-{
-    uint8_t data[6];
-
-    I2C_ReadNReg(MPU_6050_ADDR, moduleType, &data[0], 6);
-    *dataX = data[0] << 8 | data[1];
-    *dataY = data[2] << 8 | data[3];
-    *dataZ = data[4] << 8 | data[5];
+    while (IC1CON1bits.ICBNE)
+    {
+        int junk = IC1BUF;
+            junk = 2;
+    }
+    
+    T1CON = 0b0000000000000000;
+    T1CONbits.TCKPS = 0b10;
+    T1CONbits.TCS = 0b0;
+    T1CONbits.TON = 1;
+    IC1CON2bits.SYNCSEL = 0b00000;
+    IC1CON1bits.ICTSEL = 0b100;
+    IC1CON1bits.ICI = 0b00;
+    IC1CON1bits.ICM = RISING_EDGE_TRIGGER_SETTING;
+    IPC0bits.IC1IP = 1;
+    IFS0bits.IC1IF = false;
+    IEC0bits.IC1IE = true;
 }
 
-void calibrateModule(int samples, int sampleDelay, MPU_6050_Module *imu, uint8_t moduleType)
+extern volatile bool mpuInterrupt;
+
+void __attribute__ ((__interrupt__, auto_psv)) _IC1Interrupt(void)
 {
-	int x_offset_temp = 0,
-		y_offset_temp = 0,
-		z_offset_temp = 0,
-		x, y, z;
+    if (IC1CON1bits.ICM == RISING_EDGE_TRIGGER_SETTING)
+    {
+        mpuInterrupt   = true;
+    }
 
-	readMotionData(&x, &y, &z, moduleType);
-
-	int i = 0;
-	for (i = 0; i < samples; i++)
-	{
-		// __delay_ms(sampleDelay);
-		readMotionData(&x, &y, &z, moduleType);
-		x_offset_temp += x;
-		y_offset_temp += y;
-		z_offset_temp += z;
-	}
-
-	imu->xOffset= abs(x_offset_temp) / samples;
-	imu->yOffset = abs(y_offset_temp) / samples;
-	imu->zOffset = abs(z_offset_temp) / samples;
-	if (x_offset_temp > 0)imu->xOffset = -imu->xOffset;
-	if (y_offset_temp > 0)imu->yOffset = -imu->yOffset;
-	if (z_offset_temp > 0)imu->zOffset = -imu->zOffset;
+    IFS0bits.IC1IF = 0;
 }
-
-void MPU_6050_Initialize(MPU_6050 *imu)
-{
-    I2C_Init();
-    __delay_ms(100);
-    I2C_WriteReg(0x68,0x6B,0x00);
-    __delay_ms(100);
-    I2C_WriteReg(0x68,0x1C,0x00);
-    __delay_ms(100);
-    // calibrateModule(200, 10, &imu->accel, MPU_6050_ACEL_ST_ADDR);
-	// calibrateModule(200, 10, &imu->gyro,  MPU_6050_GYRO_ST_ADDR);
-}
-
 
 int main(void)
 {
-    // initialize the device
     SYSTEM_Initialize();
     __delay_ms(1000);
+     I2C_Init();
     
-	MPU_6050 imu;
-    printf("initializing\r\n");
-	MPU_6050_Initialize(&imu);    
+    printf("\n\rGWelcome_ MPU6050 DMP test \n");
 
-	long x_offset_temp = 0,
-	y_offset_temp = 0,
-	z_offset_temp = 0;
-	int x,y,z;
+    printf("\t MPU6050_WHO_AM_I:[%x]\n\r",I2C2Read(MPU6050_I2C_ADDRESS,MPU6050_WHO_AM_I)); 
 
-	readMotionData(&x, &y, &z, MPU_6050_GYRO_ST_ADDR);
-
-	int i;
-	for (i = 0; i < 50; i++)
-	{
-		// __delay_ms(sampleDelay);
-		readMotionData(&x, &y, &z, MPU_6050_GYRO_ST_ADDR);
-		x_offset_temp += x;
-		y_offset_temp += y;
-		z_offset_temp += z;
-	}
-
-	int g,h,j;
-	g = x_offset_temp / 50;
-	h = y_offset_temp / 50;
-	j = z_offset_temp / 50;
-
-
-		//***********************
-    x_offset_temp = 0,
-	y_offset_temp = 0,
-	z_offset_temp = 0;
-
-
-	readMotionData(&x, &y, &z, MPU_6050_ACEL_ST_ADDR);
-
-	for (i = 0; i < 50; i++)
-	{
-		// __delay_ms(sampleDelay);
-		readMotionData(&x, &y, &z, MPU_6050_ACEL_ST_ADDR);
-		x_offset_temp += x;
-		y_offset_temp += y;
-		z_offset_temp += z;
-	}
-
-	int b,n,m;
-	b = x_offset_temp / 50;
-	n = y_offset_temp / 50;
-	m = z_offset_temp / 50;
-
-
-    
-    while (1)
+    if(I2C2Read(MPU6050_I2C_ADDRESS,MPU6050_WHO_AM_I)==0x68)
     {
-        int x,y,z,r,t,s;
-        readMotionData(&x,&y,&z,MPU_6050_GYRO_ST_ADDR);
-        readMotionData(&r,&t,&s,MPU_6050_ACEL_ST_ADDR);
+        I2C_WriteReg(0x68,0x6B,0x00);
+        MPU6050_setXGyroOffset(220);
+        MPU6050_setYGyroOffset(76);
+        MPU6050_setZGyroOffset(-85);
+        MPU6050_setZAccelOffset(1788); // 1688 factory default for my test chip
 
+        MPU6050_setup();
+       
 
-        printf("%i | %i | %i | %i | %i | %i\r\n",x-g,y-h,z-j, r-b, t-n, s-m);
-		__delay_ms(100);
+        // while(true) 
+        // {
+
+        //     MPU6050_loop();
+        //     ClrWdt();
+        // }
     }
+
+    printf("MPU6050 Not found!!! \n");
+
+    while(1) Idle();
 
     return -1;
 }
