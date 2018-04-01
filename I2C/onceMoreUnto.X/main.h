@@ -18,4 +18,6 @@
 
 #define DMP_Hz      20
 #define HZ_val      200/DMP_Hz-1
+
+
 void IC1_Initialize(void);

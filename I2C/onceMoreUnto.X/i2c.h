@@ -1,6 +1,6 @@
 #include "main.h"
 
-#define I2C_BAUDRATE    (unsigned long)400000 //default baud rate 100kHz
+#define I2C_BAUDRATE    (unsigned long)100000 //default baud rate 100kHz
 #define I2C_ERROR        -1
 #define I2C_OK           1
 
@@ -18,3 +18,4 @@ bool I2C_WriteBits(uint8_t devAddr, uint8_t regAddr, uint8_t bitStart, uint8_t l
 uint8_t I2C_ReadBit(uint8_t devAddr, uint8_t regAddr, uint8_t bitNum, uint8_t *data);
 uint8_t I2C_ReadBits(uint8_t devAddr, uint8_t regAddr, uint8_t bitStart, uint8_t length, uint8_t *data);
 unsigned int RestartI2C(void);
+void clearI2C();

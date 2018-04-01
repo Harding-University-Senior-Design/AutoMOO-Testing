@@ -19,10 +19,9 @@ uint8_t *dmpPacketBuffer;
  |  24  25  26  27  28  29  30  31  32  33  34  35  36  37  38  39  40  41                          |
  * ================================================================================================ */
 
-// this block of memory gets written to the MPU on start-up, and it seems
-// to be volatile memory, so it has to be done each time (it only takes ~1
-// second though)
-const unsigned char dmpMemory[MPU6050_DMP_CODE_SIZE] = {
+
+const unsigned char dmpMemory[MPU6050_DMP_CODE_SIZE] = 
+{
     // bank 0, 256 bytes
     0xFB, 0x00, 0x00, 0x3E, 0x00, 0x0B, 0x00, 0x36, 0x00, 0x01, 0x00, 0x02, 0x00, 0x03, 0x00, 0x00,
     0x00, 0x65, 0x00, 0x54, 0xFF, 0xEF, 0x00, 0x00, 0xFA, 0x80, 0x00, 0x0B, 0x12, 0x82, 0x00, 0x01,
@@ -160,8 +159,8 @@ const unsigned char dmpMemory[MPU6050_DMP_CODE_SIZE] = {
     0x98, 0xF1, 0xA3, 0xA3, 0xA3, 0xA3, 0x97, 0xA3, 0xA3, 0xA3, 0xA3, 0xF3, 0x9B, 0xA3, 0xA3, 0xDC,
     0xB9, 0xA7, 0xF1, 0x26, 0x26, 0x26, 0xD8, 0xD8, 0xFF};
 
-// thanks to Noah Zerkin for piecing this stuff together!
-const unsigned char dmpConfig[MPU6050_DMP_CONFIG_SIZE] = {
+const unsigned char dmpConfig[MPU6050_DMP_CONFIG_SIZE] = 
+{
     //  BANK    OFFSET  LENGTH  [DATA]
     0x03, 0x7B, 0x03, 0x4C, 0xCD, 0x6C,                   // FCFG_1 inv_set_gyro_calibration
     0x03, 0xAB, 0x03, 0x36, 0x56, 0x76,                   // FCFG_3 inv_set_gyro_calibration
@@ -185,15 +184,15 @@ const unsigned char dmpConfig[MPU6050_DMP_CONFIG_SIZE] = {
     0x04, 0x02, 0x03, 0x0D, 0x35, 0x5D,                   // CFG_MOTION_BIAS inv_turn_on_bias_from_no_motion
     0x04, 0x09, 0x04, 0x87, 0x2D, 0x35, 0x3D,             // FCFG_5 inv_set_bias_update
     0x00, 0xA3, 0x01, 0x00,                               // D_0_163 inv_set_dead_zone
-    // SPECIAL 0x01 = enable interrupts
-    0x00, 0x00, 0x00, 0x01,                         // SET INT_ENABLE at i=22, SPECIAL INSTRUCTION
-    0x07, 0x86, 0x01, 0xFE,                         // CFG_6 inv_set_fifo_interupt
-    0x07, 0x41, 0x05, 0xF1, 0x20, 0x28, 0x30, 0x38, // CFG_8 inv_send_quaternion
-    0x07, 0x7E, 0x01, 0x30,                         // CFG_16 inv_set_footer
-    0x07, 0x46, 0x01, 0x9A,                         // CFG_GYRO_SOURCE inv_send_gyro
-    0x07, 0x47, 0x04, 0xF1, 0x28, 0x30, 0x38,       // CFG_9 inv_send_gyro -> inv_construct3_fifo
-    0x07, 0x6C, 0x04, 0xF1, 0x28, 0x30, 0x38,       // CFG_12 inv_send_accel -> inv_construct3_fifo
-    0x02, 0x16, 0x02, 0x00, HZ_val                  //(0x07 -> 16Mhz) D_0_22 inv_set_fifo_rate (0x06 for first 8mhz board) (0x09 for 8Mhz board from Binoy)
+                                                          // SPECIAL 0x01 = enable interrupts
+    0x00, 0x00, 0x00, 0x01,                               // SET INT_ENABLE at i=22, SPECIAL INSTRUCTION
+    0x07, 0x86, 0x01, 0xFE,                               // CFG_6 inv_set_fifo_interupt
+    0x07, 0x41, 0x05, 0xF1, 0x20, 0x28, 0x30, 0x38,       // CFG_8 inv_send_quaternion
+    0x07, 0x7E, 0x01, 0x30,                               // CFG_16 inv_set_footer
+    0x07, 0x46, 0x01, 0x9A,                               // CFG_GYRO_SOURCE inv_send_gyro
+    0x07, 0x47, 0x04, 0xF1, 0x28, 0x30, 0x38,             // CFG_9 inv_send_gyro -> inv_construct3_fifo
+    0x07, 0x6C, 0x04, 0xF1, 0x28, 0x30, 0x38,             // CFG_12 inv_send_accel -> inv_construct3_fifo
+    0x02, 0x16, 0x02, 0x00, 0x09                          // D_0_22 inv_set_fifo_rate
 
     // This very last 0x01 WAS a 0x09, which drops the FIFO rate down to 20 Hz. 0x07 is 25 Hz,
     // 0x01 is 100Hz. Going faster than 100Hz (0x00=200Hz) tends to result in very noisy data.
@@ -203,7 +202,8 @@ const unsigned char dmpConfig[MPU6050_DMP_CONFIG_SIZE] = {
     // the FIFO output at the desired rate. Handling FIFO overflow cleanly is also a good idea.
 };
 
-const unsigned char dmpUpdates[MPU6050_DMP_UPDATES_SIZE] = {
+const unsigned char dmpUpdates[MPU6050_DMP_UPDATES_SIZE] = 
+{
     0x01, 0xB2, 0x02, 0xFF, 0xFF,
     0x01, 0x90, 0x04, 0x09, 0x23, 0xA1, 0x35,
     0x01, 0x6A, 0x02, 0x06, 0x00,
@@ -212,7 +212,6 @@ const unsigned char dmpUpdates[MPU6050_DMP_UPDATES_SIZE] = {
     0x01, 0x62, 0x02, 0x00, 0x00,
     0x00, 0x60, 0x04, 0x00, 0x40, 0x00, 0x00};
 
-#define OUTPUT_READABLE_YAWPITCHROLL
 
 // MPU control/status vars
 bool dmpReady = false;  // set true if DMP init was successful
@@ -231,12 +230,6 @@ struct VectorFloat gravity; // [x, y, z]            gravity vector
 float euler[3];             // [psi, theta, phi]    Euler angle container
 float ypr[3];               // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
 
-// packet structure for InvenSense teapot demo
-uint8_t teapotPacket[14] = {'$', 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0x00, 0x00, '\r', '\n'};
-
-// ================================================================
-// ===               INTERRUPT DETECTION ROUTINE                ===
-// ================================================================
 
 volatile bool mpuInterrupt = false; // indicates whether MPU interrupt pin has gone high
 
@@ -244,10 +237,6 @@ void dmpDataReady()
 {
     mpuInterrupt = true;
 }
-
-// ================================================================
-// ===                      INITIAL SETUP                       ===
-// ================================================================
 
 void MPU6050_setup()
 {
@@ -271,10 +260,10 @@ void MPU6050_setup()
     devStatus = MPU6050_dmpInitialize();
 
     // supply your own gyro offsets here, scaled for min sensitivity
-    MPU6050_setXGyroOffset(220);
-    MPU6050_setYGyroOffset(76);
-    MPU6050_setZGyroOffset(-85);
-    MPU6050_setZAccelOffset(1788); // 1688 factory default for my test chip
+    //    MPU6050_setXGyroOffset(220);
+    //    MPU6050_setYGyroOffset(76);
+    //    MPU6050_setZGyroOffset(-85);
+    //    MPU6050_setZAccelOffset(1788); // 1688 factory default for my test chip
 
     // make sure it worked (returns 0 if so)
     if (devStatus == 0)
@@ -351,6 +340,7 @@ uint8_t MPU6050_dmpInitialize()
     printf("Setting slave 0 address to 0x68 (self)...\n");
     MPU6050_setSlaveAddress(0, 0x68);
     printf("Resetting I2C Master control...\n");
+    MPU6050_resetI2CMaster();
     __delay_ms(20);
 
     // load DMP code into memory banks
@@ -374,13 +364,13 @@ uint8_t MPU6050_dmpInitialize()
             MPU6050_setIntEnabled(0x12);
 
             printf("Setting sample rate to 200Hz...\n");
-            MPU6050_setRate(1); // 1khz / (1 + 4) = 200 Hz
+            MPU6050_setRate(4); // 1khz / (1 + 4) = 200 Hz
 
             printf("Setting external frame sync to TEMP_OUT_L[0]...\n");
             MPU6050_setExternalFrameSync(MPU6050_EXT_SYNC_TEMP_OUT_L);
 
             printf("Setting DLPF bandwidth to 42Hz...\n");
-            MPU6050_setDLPFMode(MPU6050_DLPF_BW_256);
+            MPU6050_setDLPFMode(MPU6050_DLPF_BW_42);
 
             printf("Setting gyro sensitivity to +/- 2000 deg/sec...\n");
             MPU6050_setFullScaleGyroRange(MPU6050_GYRO_FS_2000);
@@ -525,10 +515,6 @@ uint16_t MPU6050_dmpGetFIFOPacketSize()
 {
     return dmpPacketSize;
 }
-//------------------------------------------------------------------------------
-// ================================================================
-// ===                       Calculations                       ===
-// ================================================================
 
 uint8_t MPU6050_dmpGetYawPitchRoll(float *data, struct Quaternion *q, struct VectorFloat *gravity)
 {
@@ -579,37 +565,22 @@ uint8_t MPU6050_dmpGetGravity(struct VectorFloat *v, struct Quaternion *q)
 
 void MPU6050_loop()
 {
-    if (!dmpReady)
-        return;
-    while (!mpuInterrupt && fifoCount < packetSize)
-        ;
-    mpuInterrupt = false;
-    mpuIntStatus = MPU6050_getIntStatus();
-    fifoCount = MPU6050_getFIFOCount();
-    if ((mpuIntStatus & 0x10) || fifoCount == 1024)
+    while (1)
     {
-        MPU6050_resetFIFO();
-        // printf("Overflow\n");
-    }
-    else if (mpuIntStatus & 0x02)
-    {
-        while (fifoCount < packetSize)
-            fifoCount = MPU6050_getFIFOCount();
+        static float Heading, HeadingTgt;
+        bool Moving = false;
+        if (!dmpReady)
+            return;
+        while (!mpuInterrupt && fifoCount < packetSize)
+        {
+        }
 
-        MPU6050_getFIFOBytes(fifoBuffer, packetSize);
-        fifoCount -= packetSize;
-
-        MPU6050_dmpGetQuaternion(&q, fifoBuffer);
-        MPU6050_dmpGetGravity(&gravity, &q);
-        MPU6050_dmpGetYawPitchRoll(ypr, &q, &gravity);
-        double myHeading = ypr[0] * 180 / M_PI;
-        printf("%f\n", myHeading);
+        GetHeading(&Heading, &HeadingTgt, Moving);
     }
 }
 
-void GetHeading(float *Heading, float *HeadingTgt, uint8_t Moving)
+void GetHeading(float *Heading, float *HeadingTgt, bool Moving)
 {
-
     //calc heading from IMU
     // reset interrupt flag and get INT_STATUS byte
     mpuInterrupt = false;
@@ -623,6 +594,8 @@ void GetHeading(float *Heading, float *HeadingTgt, uint8_t Moving)
     {
         // reset so we can continue cleanly
         MPU6050_resetFIFO();
+        // printf("FIFO overflow!\n");
+
         // otherwise, check for DMP data ready interrupt (this should happen frequently)
     }
     else if (mpuIntStatus & 0x02)
@@ -644,6 +617,7 @@ void GetHeading(float *Heading, float *HeadingTgt, uint8_t Moving)
         MPU6050_dmpGetYawPitchRoll(ypr, &q, &gravity);
         //Serial.print("ypr\t");
         *Heading = (ypr[0] * 180 / M_PI) + 180;
+        printf("%f\n", (ypr[0] * 180 / M_PI) + 180);
 
     } //done
 

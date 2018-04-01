@@ -11,6 +11,19 @@ void I2C_Init(void) {
     I2C1CONLbits.I2CEN = 1;
 }
 
+void clearI2C()
+{
+    TRISBbits.TRISB8 = 0;
+    TRISBbits.TRISB9 = 1;
+
+    int i;
+
+    for (i = 0; i < 9; i++)
+    {
+        LATBbits.LATB8 = !LATBbits.LATB8;
+    }
+}
+
 int setBaudRate() {
     return (FCY / I2C_BAUDRATE - FCY / 1111111) - 1;
 }
@@ -228,8 +241,6 @@ int I2C_ReadSeqReg(char dev_addr, char reg_addr, uint8_t *value, uint8_t numRegi
                 I2C1CONLbits.ACKEN = 1;
                 while (I2C1CONLbits.ACKEN); //wait for ACK to complete
             }
-
-            __delay_ms(10);
         }
         // Send I2C stop condition
         I2C1CONLbits.PEN = 1;

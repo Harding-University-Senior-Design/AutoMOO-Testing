@@ -8,24 +8,13 @@
 #define GYRO_SCALE 131.0
 #define ACCEL_SCALE 16384.0
 
-void clearI2C()
-{
-    TRISBbits.TRISB8 = 0;
-    TRISBbits.TRISB9 = 1;
-
-    int i;
-
-    for (i = 0; i < 9; i++)
-    {
-        LATBbits.LATB8 = !LATBbits.LATB8;
-    }
-}
-
 void Init_MPU6050()
 {
     clearI2C();
     I2C_Init();
     I2C_WriteReg(0x68, 0x6B, 0x00);
+    I2C_WriteReg(0x68, 0x6B, 0x01);
+
     __delay_us(100);
 }
 
@@ -74,7 +63,7 @@ void PWM_Module_Initialize(PWM_Module *left_motor, PWM_Module *right_motor)
     ANSBbits.ANSB1 = 0;
     ANSBbits.ANSB14 = 0;
     ANSBbits.ANSB15 = 0;
-        
+
     TRISBbits.TRISB10 = 0;
     TRISBbits.TRISB5 = 0;
     TRISBbits.TRISB3 = 0;
@@ -97,13 +86,11 @@ void PWM_Module_Initialize(PWM_Module *left_motor, PWM_Module *right_motor)
     right_motor->UpdateFrequency = PWM_Update_OC2_Frequency;
 }
 
-
 int main(void)
-{  
+{
     SYSTEM_Initialize();
-    __delay_ms(100);
-
     Init_MPU6050();
+
 
     PWM_Module Left_Motor;
     PWM_Module Right_Motor;
@@ -118,10 +105,10 @@ int main(void)
     Right_Motor.frequency = 20000;
     Right_Motor.UpdateFrequency(&Right_Motor);
 
-    Left_Motor.dutyCyclePercentage = 0;
+    Left_Motor.dutyCyclePercentage = 25;
     Left_Motor.UpdateDutyCycle(&Left_Motor);
 
-    Right_Motor.dutyCyclePercentage = 0;
+    Right_Motor.dutyCyclePercentage = 25;
     Right_Motor.UpdateDutyCycle(&Right_Motor);
 
     LATBbits.LATB14 = 1;
@@ -145,12 +132,8 @@ int main(void)
 
         while (true)
         {
-            MPU6050_loop();
+            // MPU6050_loop();
         }
     }
-
-
-    printf("MPU6050 Not found!!! \n");
-
     return -1;
 }
