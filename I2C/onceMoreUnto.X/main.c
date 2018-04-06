@@ -4,22 +4,24 @@
 
 #define RISING_EDGE_TRIGGER_SETTING 0b011
 #define FALLING_EDGE_TRIGGER_SETTING 0b010
-#define NUM_CAL_READINGS 10
-#define GYRO_SCALE 131.0
-#define ACCEL_SCALE 16384.0
 
-void Init_MPU6050()
-{
+extern volatile bool mpuInterrupt;
+extern volatile unsigned long timez;
+
+void Init_MPU6050() {
     clearI2C();
+    __delay_us(1000);
+
     I2C_Init();
+
+
     I2C_WriteReg(0x68, 0x6B, 0x00);
     I2C_WriteReg(0x68, 0x6B, 0x01);
 
     __delay_us(100);
 }
 
-void IC1_Initialize(void)
-{
+void IC1_Initialize(void) {
     IC1CON1 = 0x0000;
     ANSBbits.ANSB13 = 0;
     TRISBbits.TRISB13 = 1;
@@ -27,8 +29,7 @@ void IC1_Initialize(void)
 
     RPINR7bits.IC1R = 0b1101;
 
-    while (IC1CON1bits.ICBNE)
-    {
+    while (IC1CON1bits.ICBNE) {
         int junk = IC1BUF;
         junk = 2;
     }
@@ -45,95 +46,65 @@ void IC1_Initialize(void)
     IFS0bits.IC1IF = false;
     IEC0bits.IC1IE = true;
 }
-extern volatile bool mpuInterrupt;
 
-void __attribute__((__interrupt__, auto_psv)) _IC1Interrupt(void)
-{
-    if (IC1CON1bits.ICM == RISING_EDGE_TRIGGER_SETTING)
-    {
+void __attribute__((__interrupt__, auto_psv)) _IC1Interrupt(void) {
+    if (IC1CON1bits.ICM == RISING_EDGE_TRIGGER_SETTING) {
         mpuInterrupt = true;
     }
 
     IFS0bits.IC1IF = 0;
 }
 
-void PWM_Module_Initialize(PWM_Module *left_motor, PWM_Module *right_motor)
-{
-    ANSBbits.ANSB0 = 0;
-    ANSBbits.ANSB1 = 0;
-    ANSBbits.ANSB14 = 0;
-    ANSBbits.ANSB15 = 0;
-
-    TRISBbits.TRISB10 = 0;
-    TRISBbits.TRISB5 = 0;
-    TRISBbits.TRISB3 = 0;
-
-    TRISBbits.TRISB0 = 0;
-    TRISBbits.TRISB1 = 0;
-    TRISBbits.TRISB14 = 0;
-    TRISBbits.TRISB15 = 0;
-
-    left_motor->Initialize = PWM_OC1_Initialize;
-    left_motor->GetDutyCycle = PWM_Get_OC1_DutyCycle;
-    left_motor->GetFrequency = PWM_Get_OC1_Frequency;
-    left_motor->UpdateDutyCycle = PWM_Update_OC1_DutyCycle;
-    left_motor->UpdateFrequency = PWM_Update_OC1_Frequency;
-
-    right_motor->Initialize = PWM_OC2_Initialize;
-    right_motor->GetDutyCycle = PWM_Get_OC2_DutyCycle;
-    right_motor->GetFrequency = PWM_Get_OC2_Frequency;
-    right_motor->UpdateDutyCycle = PWM_Update_OC2_DutyCycle;
-    right_motor->UpdateFrequency = PWM_Update_OC2_Frequency;
+void __attribute__((__interrupt__, auto_psv)) _T1Interrupt(void) {
+    if (IFS0bits.T1IF == 1) {
+        IFS0bits.T1IF = 0; //reset the interrupt flag
+        timez++;
+    }
 }
 
-int main(void)
-{
+void TimerInit(void) {
+    PR1 = 0x07FF; //8191
+    IPC0bits.T1IP = 1; //set interrupt priority
+    T1CONbits.TCKPS = 0x03; //timer prescaler bits
+    T1CONbits.TCS = 0; //using FOSC/2
+
+    IFS0bits.T1IF = 0; //reset interrupt flag
+    IEC0bits.T1IE = 1; //turn on the timer1 interrupt
+    T1CONbits.TON = 1;
+}
+
+void read6SensorData(uint8_t addr, int *x, int *y, int *z) {
+    uint8_t data[6];
+    I2C_ReadNReg(0x68, addr, &data[0], 6);
+    *x = data[0] << 8 | data[1];
+    *y = data[2] << 8 | data[3];
+    *z = data[4] << 8 | data[5];
+}
+
+int main(void) {
     SYSTEM_Initialize();
     Init_MPU6050();
 
-
-    PWM_Module Left_Motor;
-    PWM_Module Right_Motor;
-    PWM_Module_Initialize(&Left_Motor, &Right_Motor);
-
-    Left_Motor.Initialize(&Left_Motor);
-    Right_Motor.Initialize(&Right_Motor);
-
-    Left_Motor.frequency = 20000;
-    Left_Motor.UpdateFrequency(&Left_Motor);
-
-    Right_Motor.frequency = 20000;
-    Right_Motor.UpdateFrequency(&Right_Motor);
-
-    Left_Motor.dutyCyclePercentage = 25;
-    Left_Motor.UpdateDutyCycle(&Left_Motor);
-
-    Right_Motor.dutyCyclePercentage = 25;
-    Right_Motor.UpdateDutyCycle(&Right_Motor);
-
-    LATBbits.LATB14 = 1;
-    LATBbits.LATB15 = 0;
-
-    __delay_ms(4000);
+    TimerInit();
 
     uint8_t b;
+
     I2C_ReadReg(MPU6050_I2C_ADDRESS, MPU6050_WHO_AM_I, &b);
+    int count = -1000;
 
-    int rightMotorSpeed = 25;
-    int leftMotorSpeed = 25;
-    Left_Motor.dutyCyclePercentage = leftMotorSpeed;
-    Left_Motor.UpdateDutyCycle(&Left_Motor);
-    Right_Motor.dutyCyclePercentage = rightMotorSpeed;
-    Right_Motor.UpdateDutyCycle(&Right_Motor);
+    MPU6050_address(0x68);
 
-    if (b == 0x68)
-    {
-        MPU6050_setup();
+    while (1) {
 
-        while (true)
-        {
-            // MPU6050_loop();
+
+        if (b == 0x68) {
+            MPU6050_setup();
+
+            while (true) {
+                MPU6050_loop();
+            }
         }
     }
+
     return -1;
 }

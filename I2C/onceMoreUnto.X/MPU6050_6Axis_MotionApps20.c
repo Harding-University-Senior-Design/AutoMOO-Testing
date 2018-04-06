@@ -8,6 +8,17 @@ uint8_t *dmpPacketBuffer;
 #define MPU6050_DMP_CODE_SIZE 1929  // dmpMemory[]
 #define MPU6050_DMP_CONFIG_SIZE 192 // dmpConfig[]
 #define MPU6050_DMP_UPDATES_SIZE 47 // dmpUpdates[]
+#define FRAMESIZE 20
+#define NONE 0
+#define IMU_WARM 1
+#define CRASH 2
+#define CANCEL 3
+
+#define UP 5
+#define DN 6
+#define LEFT 7
+#define RIGHT 8
+#define GO 9
 
 /* ================================================================================================ *
  | Default MotionApps v2.0 42-byte FIFO packet structure:                                           |
@@ -19,9 +30,7 @@ uint8_t *dmpPacketBuffer;
  |  24  25  26  27  28  29  30  31  32  33  34  35  36  37  38  39  40  41                          |
  * ================================================================================================ */
 
-
-const unsigned char dmpMemory[MPU6050_DMP_CODE_SIZE] = 
-{
+const unsigned char dmpMemory[MPU6050_DMP_CODE_SIZE] = {
     // bank 0, 256 bytes
     0xFB, 0x00, 0x00, 0x3E, 0x00, 0x0B, 0x00, 0x36, 0x00, 0x01, 0x00, 0x02, 0x00, 0x03, 0x00, 0x00,
     0x00, 0x65, 0x00, 0x54, 0xFF, 0xEF, 0x00, 0x00, 0xFA, 0x80, 0x00, 0x0B, 0x12, 0x82, 0x00, 0x01,
@@ -157,42 +166,42 @@ const unsigned char dmpMemory[MPU6050_DMP_CODE_SIZE] =
     0xA3, 0xF2, 0xA3, 0xB4, 0x90, 0x80, 0xF2, 0xA3, 0xA3, 0xA3, 0xA3, 0xA3, 0xA3, 0xA3, 0xA3, 0xA3,
     0xA3, 0xB2, 0xA3, 0xA3, 0xA3, 0xA3, 0xA3, 0xA3, 0xB0, 0x87, 0xB5, 0x99, 0xF1, 0xA3, 0xA3, 0xA3,
     0x98, 0xF1, 0xA3, 0xA3, 0xA3, 0xA3, 0x97, 0xA3, 0xA3, 0xA3, 0xA3, 0xF3, 0x9B, 0xA3, 0xA3, 0xDC,
-    0xB9, 0xA7, 0xF1, 0x26, 0x26, 0x26, 0xD8, 0xD8, 0xFF};
+    0xB9, 0xA7, 0xF1, 0x26, 0x26, 0x26, 0xD8, 0xD8, 0xFF
+};
 
-const unsigned char dmpConfig[MPU6050_DMP_CONFIG_SIZE] = 
-{
+const unsigned char dmpConfig[MPU6050_DMP_CONFIG_SIZE] = {
     //  BANK    OFFSET  LENGTH  [DATA]
-    0x03, 0x7B, 0x03, 0x4C, 0xCD, 0x6C,                   // FCFG_1 inv_set_gyro_calibration
-    0x03, 0xAB, 0x03, 0x36, 0x56, 0x76,                   // FCFG_3 inv_set_gyro_calibration
-    0x00, 0x68, 0x04, 0x02, 0xCB, 0x47, 0xA2,             // D_0_104 inv_set_gyro_calibration
-    0x02, 0x18, 0x04, 0x00, 0x05, 0x8B, 0xC1,             // D_0_24 inv_set_gyro_calibration
-    0x01, 0x0C, 0x04, 0x00, 0x00, 0x00, 0x00,             // D_1_152 inv_set_accel_calibration
+    0x03, 0x7B, 0x03, 0x4C, 0xCD, 0x6C, // FCFG_1 inv_set_gyro_calibration
+    0x03, 0xAB, 0x03, 0x36, 0x56, 0x76, // FCFG_3 inv_set_gyro_calibration
+    0x00, 0x68, 0x04, 0x02, 0xCB, 0x47, 0xA2, // D_0_104 inv_set_gyro_calibration
+    0x02, 0x18, 0x04, 0x00, 0x05, 0x8B, 0xC1, // D_0_24 inv_set_gyro_calibration
+    0x01, 0x0C, 0x04, 0x00, 0x00, 0x00, 0x00, // D_1_152 inv_set_accel_calibration
     0x03, 0x7F, 0x06, 0x0C, 0xC9, 0x2C, 0x97, 0x97, 0x97, // FCFG_2 inv_set_accel_calibration
-    0x03, 0x89, 0x03, 0x26, 0x46, 0x66,                   // FCFG_7 inv_set_accel_calibration
-    0x00, 0x6C, 0x02, 0x20, 0x00,                         // D_0_108 inv_set_accel_calibration
-    0x02, 0x40, 0x04, 0x00, 0x00, 0x00, 0x00,             // CPASS_MTX_00 inv_set_compass_calibration
-    0x02, 0x44, 0x04, 0x00, 0x00, 0x00, 0x00,             // CPASS_MTX_01
-    0x02, 0x48, 0x04, 0x00, 0x00, 0x00, 0x00,             // CPASS_MTX_02
-    0x02, 0x4C, 0x04, 0x00, 0x00, 0x00, 0x00,             // CPASS_MTX_10
-    0x02, 0x50, 0x04, 0x00, 0x00, 0x00, 0x00,             // CPASS_MTX_11
-    0x02, 0x54, 0x04, 0x00, 0x00, 0x00, 0x00,             // CPASS_MTX_12
-    0x02, 0x58, 0x04, 0x00, 0x00, 0x00, 0x00,             // CPASS_MTX_20
-    0x02, 0x5C, 0x04, 0x00, 0x00, 0x00, 0x00,             // CPASS_MTX_21
-    0x02, 0xBC, 0x04, 0x00, 0x00, 0x00, 0x00,             // CPASS_MTX_22
-    0x01, 0xEC, 0x04, 0x00, 0x00, 0x40, 0x00,             // D_1_236 inv_apply_endian_accel
+    0x03, 0x89, 0x03, 0x26, 0x46, 0x66, // FCFG_7 inv_set_accel_calibration
+    0x00, 0x6C, 0x02, 0x20, 0x00, // D_0_108 inv_set_accel_calibration
+    0x02, 0x40, 0x04, 0x00, 0x00, 0x00, 0x00, // CPASS_MTX_00 inv_set_compass_calibration
+    0x02, 0x44, 0x04, 0x00, 0x00, 0x00, 0x00, // CPASS_MTX_01
+    0x02, 0x48, 0x04, 0x00, 0x00, 0x00, 0x00, // CPASS_MTX_02
+    0x02, 0x4C, 0x04, 0x00, 0x00, 0x00, 0x00, // CPASS_MTX_10
+    0x02, 0x50, 0x04, 0x00, 0x00, 0x00, 0x00, // CPASS_MTX_11
+    0x02, 0x54, 0x04, 0x00, 0x00, 0x00, 0x00, // CPASS_MTX_12
+    0x02, 0x58, 0x04, 0x00, 0x00, 0x00, 0x00, // CPASS_MTX_20
+    0x02, 0x5C, 0x04, 0x00, 0x00, 0x00, 0x00, // CPASS_MTX_21
+    0x02, 0xBC, 0x04, 0x00, 0x00, 0x00, 0x00, // CPASS_MTX_22
+    0x01, 0xEC, 0x04, 0x00, 0x00, 0x40, 0x00, // D_1_236 inv_apply_endian_accel
     0x03, 0x7F, 0x06, 0x0C, 0xC9, 0x2C, 0x97, 0x97, 0x97, // FCFG_2 inv_set_mpu_sensors
-    0x04, 0x02, 0x03, 0x0D, 0x35, 0x5D,                   // CFG_MOTION_BIAS inv_turn_on_bias_from_no_motion
-    0x04, 0x09, 0x04, 0x87, 0x2D, 0x35, 0x3D,             // FCFG_5 inv_set_bias_update
-    0x00, 0xA3, 0x01, 0x00,                               // D_0_163 inv_set_dead_zone
-                                                          // SPECIAL 0x01 = enable interrupts
-    0x00, 0x00, 0x00, 0x01,                               // SET INT_ENABLE at i=22, SPECIAL INSTRUCTION
-    0x07, 0x86, 0x01, 0xFE,                               // CFG_6 inv_set_fifo_interupt
-    0x07, 0x41, 0x05, 0xF1, 0x20, 0x28, 0x30, 0x38,       // CFG_8 inv_send_quaternion
-    0x07, 0x7E, 0x01, 0x30,                               // CFG_16 inv_set_footer
-    0x07, 0x46, 0x01, 0x9A,                               // CFG_GYRO_SOURCE inv_send_gyro
-    0x07, 0x47, 0x04, 0xF1, 0x28, 0x30, 0x38,             // CFG_9 inv_send_gyro -> inv_construct3_fifo
-    0x07, 0x6C, 0x04, 0xF1, 0x28, 0x30, 0x38,             // CFG_12 inv_send_accel -> inv_construct3_fifo
-    0x02, 0x16, 0x02, 0x00, 0x09                          // D_0_22 inv_set_fifo_rate
+    0x04, 0x02, 0x03, 0x0D, 0x35, 0x5D, // CFG_MOTION_BIAS inv_turn_on_bias_from_no_motion
+    0x04, 0x09, 0x04, 0x87, 0x2D, 0x35, 0x3D, // FCFG_5 inv_set_bias_update
+    0x00, 0xA3, 0x01, 0x00, // D_0_163 inv_set_dead_zone
+    // SPECIAL 0x01 = enable interrupts
+    0x00, 0x00, 0x00, 0x01, // SET INT_ENABLE at i=22, SPECIAL INSTRUCTION
+    0x07, 0x86, 0x01, 0xFE, // CFG_6 inv_set_fifo_interupt
+    0x07, 0x41, 0x05, 0xF1, 0x20, 0x28, 0x30, 0x38, // CFG_8 inv_send_quaternion
+    0x07, 0x7E, 0x01, 0x30, // CFG_16 inv_set_footer
+    0x07, 0x46, 0x01, 0x9A, // CFG_GYRO_SOURCE inv_send_gyro
+    0x07, 0x47, 0x04, 0xF1, 0x28, 0x30, 0x38, // CFG_9 inv_send_gyro -> inv_construct3_fifo
+    0x07, 0x6C, 0x04, 0xF1, 0x28, 0x30, 0x38, // CFG_12 inv_send_accel -> inv_construct3_fifo
+    0x02, 0x16, 0x02, 0x00, 0x09 // D_0_22 inv_set_fifo_rate
 
     // This very last 0x01 WAS a 0x09, which drops the FIFO rate down to 20 Hz. 0x07 is 25 Hz,
     // 0x01 is 100Hz. Going faster than 100Hz (0x00=200Hz) tends to result in very noisy data.
@@ -202,44 +211,68 @@ const unsigned char dmpConfig[MPU6050_DMP_CONFIG_SIZE] =
     // the FIFO output at the desired rate. Handling FIFO overflow cleanly is also a good idea.
 };
 
-const unsigned char dmpUpdates[MPU6050_DMP_UPDATES_SIZE] = 
-{
+const unsigned char dmpUpdates[MPU6050_DMP_UPDATES_SIZE] = {
     0x01, 0xB2, 0x02, 0xFF, 0xFF,
     0x01, 0x90, 0x04, 0x09, 0x23, 0xA1, 0x35,
     0x01, 0x6A, 0x02, 0x06, 0x00,
     0x01, 0x60, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x60, 0x04, 0x40, 0x00, 0x00, 0x00,
     0x01, 0x62, 0x02, 0x00, 0x00,
-    0x00, 0x60, 0x04, 0x00, 0x40, 0x00, 0x00};
-
+    0x00, 0x60, 0x04, 0x00, 0x40, 0x00, 0x00
+};
 
 // MPU control/status vars
-bool dmpReady = false;  // set true if DMP init was successful
-uint8_t mpuIntStatus;   // holds actual interrupt status byte from MPU
-uint8_t devStatus;      // return status after each device operation (0 = success, !0 = error)
-uint16_t packetSize;    // expected DMP packet size (default is 42 bytes)
-uint16_t fifoCount;     // count of all bytes currently in FIFO
+bool dmpReady = false; // set true if DMP init was successful
+uint8_t mpuIntStatus; // holds actual interrupt status byte from MPU
+uint8_t devStatus; // return status after each device operation (0 = success, !0 = error)
+uint16_t packetSize; // expected DMP packet size (default is 42 bytes)
+uint16_t fifoCount; // count of all bytes currently in FIFO
 uint8_t fifoBuffer[64]; // FIFO storage buffer
 
 // orientation/motion vars
-struct Quaternion q;        // [w, x, y, z]         quaternion container
-struct VectorInt16 aa;      // [x, y, z]            accel sensor measurements
-struct VectorInt16 aaReal;  // [x, y, z]            gravity-free accel sensor measurements
+struct Quaternion q; // [w, x, y, z]         quaternion container
+struct VectorInt16 aa; // [x, y, z]            accel sensor measurements
+struct VectorInt16 aaReal; // [x, y, z]            gravity-free accel sensor measurements
 struct VectorInt16 aaWorld; // [x, y, z]            world-frame accel sensor measurements
 struct VectorFloat gravity; // [x, y, z]            gravity vector
-float euler[3];             // [psi, theta, phi]    Euler angle container
-float ypr[3];               // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
-
+float euler[3]; // [psi, theta, phi]    Euler angle container
+float ypr[3]; // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
 
 volatile bool mpuInterrupt = false; // indicates whether MPU interrupt pin has gone high
+volatile unsigned long timez;
 
-void dmpDataReady()
-{
+void dmpDataReady() {
     mpuInterrupt = true;
 }
 
-void MPU6050_setup()
-{
+PWM_Module Left_Motor;
+PWM_Module Right_Motor;
+
+void PWM_Module_Initialize(PWM_Module *left_motor, PWM_Module *right_motor) {
+    ANSBbits.ANSB0 = 0;
+    ANSBbits.ANSB1 = 0;
+    ANSBbits.ANSB14 = 0;
+    ANSBbits.ANSB15 = 0;
+
+    TRISBbits.TRISB0 = 0;
+    TRISBbits.TRISB1 = 0;
+    TRISBbits.TRISB14 = 0;
+    TRISBbits.TRISB15 = 0;
+
+    left_motor->Initialize = PWM_OC1_Initialize;
+    left_motor->GetDutyCycle = PWM_Get_OC1_DutyCycle;
+    left_motor->GetFrequency = PWM_Get_OC1_Frequency;
+    left_motor->UpdateDutyCycle = PWM_Update_OC1_DutyCycle;
+    left_motor->UpdateFrequency = PWM_Update_OC1_Frequency;
+
+    right_motor->Initialize = PWM_OC2_Initialize;
+    right_motor->GetDutyCycle = PWM_Get_OC2_DutyCycle;
+    right_motor->GetFrequency = PWM_Get_OC2_Frequency;
+    right_motor->UpdateDutyCycle = PWM_Update_OC2_DutyCycle;
+    right_motor->UpdateFrequency = PWM_Update_OC2_Frequency;
+}
+
+void MPU6050_setup() {
     printf("Initializing I2C devices...\n");
     MPU6050_address(MPU6050_I2C_ADDRESS);
 
@@ -266,15 +299,13 @@ void MPU6050_setup()
     //    MPU6050_setZAccelOffset(1788); // 1688 factory default for my test chip
 
     // make sure it worked (returns 0 if so)
-    if (devStatus == 0)
-    {
+    if (devStatus == 0) {
         // turn on the DMP, now that it's ready
         printf("Enabling DMP...\n");
         MPU6050_setDMPEnabled(true);
 
         printf("Enabling interrupt detection (external interrupt B14 pin)...\n");
         IC1_Initialize();
-        //        ExtINT_init();
         mpuIntStatus = MPU6050_getIntStatus();
 
         // set our DMP Ready flag so the main loop() function knows it's okay to use it
@@ -284,9 +315,7 @@ void MPU6050_setup()
         // get expected DMP packet size for later comparison
         packetSize = MPU6050_dmpGetFIFOPacketSize();
         printf("packetSize: %d\n", packetSize);
-    }
-    else
-    {
+    } else {
         // ERROR!
         // 1 = initial memory load failed
         // 2 = DMP configuration updates failed
@@ -295,8 +324,7 @@ void MPU6050_setup()
     }
 }
 
-uint8_t MPU6050_dmpInitialize()
-{
+uint8_t MPU6050_dmpInitialize() {
     // reset device
     printf("\n Resetting MPU6050...\n");
     MPU6050_reset();
@@ -346,15 +374,13 @@ uint8_t MPU6050_dmpInitialize()
     // load DMP code into memory banks
     printf("Writing DMP code to MPU memory banks %d bytes\n", MPU6050_DMP_CODE_SIZE);
 
-    if (MPU6050_writeProgMemoryBlock(dmpMemory, MPU6050_DMP_CODE_SIZE, 0, 0, 0))
-    {
+    if (MPU6050_writeProgMemoryBlock(dmpMemory, MPU6050_DMP_CODE_SIZE, 0, 0, 0)) {
         printf("Success! DMP code written and verified\n");
 
         // write DMP configuration
         printf("Writing DMP configuration to MPU memory banks ( %d bytes in config def)\n", MPU6050_DMP_CONFIG_SIZE);
 
-        if (MPU6050_writeProgDMPConfigurationSet(dmpConfig, MPU6050_DMP_CONFIG_SIZE))
-        {
+        if (MPU6050_writeProgDMPConfigurationSet(dmpConfig, MPU6050_DMP_CONFIG_SIZE)) {
             printf("Success! DMP configuration written and verified...\n");
 
             printf("Setting clock source to Z Gyro...\n");
@@ -496,28 +522,22 @@ uint8_t MPU6050_dmpInitialize()
             printf("Resetting FIFO and clearing INT status one last time...\n");
             MPU6050_resetFIFO();
             MPU6050_getIntStatus();
-        }
-        else
-        {
+        } else {
             printf("ERROR! DMP configuration verification failed.....\n");
             return 2; // configuration block loading failed
         }
-    }
-    else
-    {
+    } else {
         printf("ERROR! DMP code verification failed...\n");
         return 1; // main binary block loading failed
     }
     return 0; // success
 }
 
-uint16_t MPU6050_dmpGetFIFOPacketSize()
-{
+uint16_t MPU6050_dmpGetFIFOPacketSize() {
     return dmpPacketSize;
 }
 
-uint8_t MPU6050_dmpGetYawPitchRoll(float *data, struct Quaternion *q, struct VectorFloat *gravity)
-{
+uint8_t MPU6050_dmpGetYawPitchRoll(float *data, struct Quaternion *q, struct VectorFloat *gravity) {
     // yaw: (about Z axis)
     data[0] = atan2(2 * q->x * q->y - 2 * q->w * q->z, 2 * q->w * q->w + 2 * q->x * q->x - 1);
     // pitch: (nose up/down, about Y axis)
@@ -527,24 +547,21 @@ uint8_t MPU6050_dmpGetYawPitchRoll(float *data, struct Quaternion *q, struct Vec
     return 0;
 }
 
-uint8_t MPU6050_dmpGetQuaternion(struct Quaternion *q, const uint8_t *packet)
-{
+uint8_t MPU6050_dmpGetQuaternion(struct Quaternion *q, const uint8_t *packet) {
     // TODO: accommodate different arrangements of sent data (ONLY default supported now)
     int16_t qI[4];
     uint8_t status = MPU6050_dmpGetQuaternion_integer(qI, packet);
-    if (status == 0)
-    {
-        q->w = (float)qI[0] / 16384.0f;
-        q->x = (float)qI[1] / 16384.0f;
-        q->y = (float)qI[2] / 16384.0f;
-        q->z = (float)qI[3] / 16384.0f;
+    if (status == 0) {
+        q->w = (float) qI[0] / 16384.0f;
+        q->x = (float) qI[1] / 16384.0f;
+        q->y = (float) qI[2] / 16384.0f;
+        q->z = (float) qI[3] / 16384.0f;
         return 0;
     }
     return status; // int16 return value, indicates error if this line is reached
 }
 
-uint8_t MPU6050_dmpGetQuaternion_integer(int16_t *data, const uint8_t *packet)
-{
+uint8_t MPU6050_dmpGetQuaternion_integer(int16_t *data, const uint8_t *packet) {
     // TODO: accommodate different arrangements of sent data (ONLY default supported now)
     if (packet == 0)
         packet = dmpPacketBuffer;
@@ -555,32 +572,76 @@ uint8_t MPU6050_dmpGetQuaternion_integer(int16_t *data, const uint8_t *packet)
     return 0;
 }
 
-uint8_t MPU6050_dmpGetGravity(struct VectorFloat *v, struct Quaternion *q)
-{
+uint8_t MPU6050_dmpGetGravity(struct VectorFloat *v, struct Quaternion *q) {
     v->x = 2 * (q->x * q->z - q->w * q->y);
     v->y = 2 * (q->w * q->x + q->y * q->z);
     v->z = q->w * q->w - q->x * q->x - q->y * q->y + q->z * q->z;
     return 0;
 }
 
-void MPU6050_loop()
+void CompileUserCommands(uint8_t CMDBuff[], uint8_t Command, bool *Moving) {
+    if (*Moving == 0) {
+        // When static build up an array of commands.  !st byte is # commands
+        // GO btn executes or can CANCEL commands.  When we get a go then start moving
+        if (Command >= CANCEL) {
+            CMDBuff[0]++;
+            CMDBuff[CMDBuff[0]] = Command;
+
+            if (Command == GO) {
+                *Moving = 1;
+            }
+
+            if (Command == CANCEL) {
+                CMDBuff[0] = 0;
+            }
+        } //END IF
+    } //END IF
+} //END CompileUserCommands
+
+void PullNextUserCommand(uint8_t CMDBuff[], uint8_t Moving, uint8_t *CurrentCMD) // @SM if moving then execute next command
 {
-    while (1)
-    {
-        static float Heading, HeadingTgt;
-        bool Moving = false;
-        if (!dmpReady)
-            return;
-        while (!mpuInterrupt && fifoCount < packetSize)
-        {
+    static uint8_t ptr;
+
+    if (Moving) {
+        if ((*CurrentCMD == NONE) || (*CurrentCMD == CRASH)) {
+            //need a new CMD...
+            if (ptr <= CMDBuff[0]) {
+
+                //CMDs still in there
+                *CurrentCMD = CMDBuff[ptr];
+                CMDBuff[ptr] = 0; // clear to make debugging easier
+                ptr++;
+            } else
+                CMDBuff[0] = 0; //Empty buffer
         }
-
-        GetHeading(&Heading, &HeadingTgt, Moving);
+    }//END IF Moving
+    else {
+        ptr = 1; //set ptr to 1st cmd
     }
-}
 
-void GetHeading(float *Heading, float *HeadingTgt, bool Moving)
-{
+} //END PullNextUserCommand
+
+void LimitInt(int *x, int Min, int Max) {
+    if (*x > Max)
+        *x = Max;
+    if (*x < Min)
+        *x = Min;
+
+} //END LimitInt
+
+//
+// Clamp a float between a min and max.  Note doubles are the same
+// as floats on this platform.
+
+void LimitFloat(float *x, float Min, float Max) {
+    if (*x > Max)
+        *x = Max;
+    if (*x < Min)
+        *x = Min;
+
+} //END LimitFloat
+
+void GetHeading(float *Heading, float *HeadingTgt, bool Moving) {
     //calc heading from IMU
     // reset interrupt flag and get INT_STATUS byte
     mpuInterrupt = false;
@@ -590,16 +651,13 @@ void GetHeading(float *Heading, float *HeadingTgt, bool Moving)
     fifoCount = MPU6050_getFIFOCount();
 
     // check for overflow (this should never happen unless our code is too inefficient)
-    if ((mpuIntStatus & 0x10) || fifoCount == 1024)
-    {
+    if ((mpuIntStatus & 0x10) || fifoCount == 1024) {
         // reset so we can continue cleanly
         MPU6050_resetFIFO();
         // printf("FIFO overflow!\n");
 
         // otherwise, check for DMP data ready interrupt (this should happen frequently)
-    }
-    else if (mpuIntStatus & 0x02)
-    {
+    } else if (mpuIntStatus & 0x02) {
         // wait for correct available data length, should be a VERY short wait
         while (fifoCount < packetSize)
             fifoCount = MPU6050_getFIFOCount();
@@ -617,12 +675,363 @@ void GetHeading(float *Heading, float *HeadingTgt, bool Moving)
         MPU6050_dmpGetYawPitchRoll(ypr, &q, &gravity);
         //Serial.print("ypr\t");
         *Heading = (ypr[0] * 180 / M_PI) + 180;
-        printf("%f\n", (ypr[0] * 180 / M_PI) + 180);
+        //        printf("%f\n", (ypr[0] * 180 / M_PI) + 180);
 
     } //done
 
-    if (!Moving)
-    {
+    if (!Moving) {
         *HeadingTgt = *Heading;
     }
 } //END GetHeading
+
+int normalise(const int value, const int start, const int end) {
+    const int width = end - start; // 
+    const int offsetValue = value - start; // value relative to 0
+
+    return ( offsetValue - ((offsetValue / width) * width)) +start;
+    // + start to reset back to start of original range
+}
+
+void DriveMotors(int PDrive, int SDrive, bool Moving) {
+
+    int Mag;
+
+    if (!Moving) {
+        PDrive = 0;
+        SDrive = 0;
+    }
+    int leftSpeed, rightSpeed;
+
+    LimitInt(&PDrive, -1000, 1000);
+    LimitInt(&SDrive, -1000, 1000);
+
+    // ========= Port drive =========
+    Mag = abs(PDrive) * .205 + 15;
+    if (PDrive == 0)
+        Mag = 0;
+
+    if (PDrive < 0) {
+        LATBbits.LATB15 = 0;
+        leftSpeed = normalise(255 - Mag, 0, 50);
+        Left_Motor.dutyCyclePercentage = leftSpeed;
+        Left_Motor.UpdateDutyCycle(&Left_Motor);
+    } else {
+        LATBbits.LATB15 = 1;
+        leftSpeed = normalise(Mag, 0, 50);
+        Left_Motor.dutyCyclePercentage = leftSpeed;
+        Left_Motor.UpdateDutyCycle(&Left_Motor);
+    }
+
+    // ========= Stbd drive =========
+    Mag = abs(SDrive) * .205 + 15;
+    if (SDrive == 0)
+        Mag = 0;
+
+    if (SDrive < 0) {
+        LATBbits.LATB14 = 0;
+        rightSpeed = normalise(255 - Mag, 0, 50);
+        Right_Motor.dutyCyclePercentage = rightSpeed;
+        Right_Motor.UpdateDutyCycle(&Right_Motor);
+    } else {
+        LATBbits.LATB14 = 1;
+        rightSpeed = normalise(Mag, 0, 50);
+        Right_Motor.dutyCyclePercentage = rightSpeed;
+        Right_Motor.UpdateDutyCycle(&Right_Motor);
+    }
+
+} //END DriveMotors
+
+void PID(float Hdg, float HdgTgt, int *Demand, float kP, float kI, float kD, bool Moving) {
+    static unsigned long lastTime;
+    static float Output;
+    static float errSum, lastErr, error;
+
+    // IF not moving then
+    if (!Moving) {
+        errSum = 0;
+        lastErr = 0;
+        return;
+    }
+
+    //error correction for angular overlap
+    error = Hdg - HdgTgt;
+    if (error < 180)
+        error += 360;
+    if (error > 180)
+        error -= 360;
+
+    //http://brettbeauregard.com/blog/2011/04/improving-the-beginners-pid-introduction/
+
+    /*How long since we last calculated*/
+    unsigned long now = timez;
+    float timeChange = (float) (now - lastTime);
+    /*Compute all the working error variables*/
+    //float error = Setpoint - Input;
+    errSum += (error * timeChange);
+
+    //integral windup guard
+    LimitFloat(&errSum, -300, 300);
+
+    float dErr = (error - lastErr) / timeChange;
+
+    /*Compute PID Output*/
+    *Demand = kP * error + kI * errSum + kD * dErr;
+    /*Remember some variables for next time*/
+    lastErr = error;
+    lastTime = now;
+
+    //limit demand
+    LimitInt(Demand, -400, 400);
+
+} //END getPID
+
+void CheckIMU(uint8_t *Command, float Heading) {
+    static int Init = 1, Count;
+    static float oHeading;
+
+    if (Init) {
+        //If IMU not stable don't allow the robot to start navigating.
+        if (*Command == GO)
+            *Command = NONE;
+
+        Count++;
+        if (Count > 2) {
+            Count = 0;
+            if (abs(Heading - oHeading) < 1) {
+                Init = 0;
+                *Command = IMU_WARM;
+            } else
+                oHeading = Heading;
+        }
+    }
+} //END Check IMU
+
+void ExecuteCommand(uint8_t *CurrentCMD, bool *Moving, float *HeadingTgt, float Demand, uint8_t Command) {
+    static uint8_t state = 0;
+    static int ForeDmd, Time;
+    const int ExecuteDelay = 10;
+
+    if (*Moving) {
+        if (state == 0) {
+
+            switch (*CurrentCMD) {
+                case UP:
+                    ForeDmd = 500;
+                    Time = ExecuteDelay * 5;
+                    state++;
+                    break;
+                case DN:
+                    ForeDmd = -400;
+                    Time = ExecuteDelay * 5;
+                    state++;
+                    break;
+                case LEFT:
+                    *HeadingTgt -= 90;
+                    Time = ExecuteDelay;
+                    state++;
+                    if (*HeadingTgt < 0)
+                        *HeadingTgt += 360;
+                    break;
+                case RIGHT:
+                    *HeadingTgt += 90;
+                    Time = ExecuteDelay;
+                    state++;
+                    if (*HeadingTgt > 360)
+                        *HeadingTgt -= 360;
+                    break;
+                case GO:
+                    state++;
+                    Time = ExecuteDelay;
+
+                    break;
+                case NONE:
+                    break;
+            } //END switch
+
+        }//END IF
+        else {
+            if (Command == CRASH)
+                ForeDmd = 0;
+
+            // count down them move back to CMD execution state
+            Time--;
+
+            if ((Time == 0)) {
+                //we've reached the end of the program!
+                if (*CurrentCMD == GO) {
+                    printf("Go found");
+                    *Moving = 0;
+                }
+                state = 0;
+                *CurrentCMD = NONE;
+                ForeDmd = 0;
+            }
+        }
+    } else {
+        //idle waiting for go cmd
+        state = 0;
+        //NOT Moving
+        ForeDmd = 0;
+    }
+    DriveMotors((Demand * -1) + ForeDmd, Demand + ForeDmd, *Moving);
+} //END ExecuteCommand
+
+void DecodeUserSwitch(uint8_t *Command, bool Moving, uint8_t *CurrentCMD) {
+    if (Moving)
+        return;
+
+    char c;
+
+    *Command = NONE;
+    if (UART1_RX_DATA_AVAILABLE) {
+        c = UART1_Read();
+    }
+
+    if (c == 'R' || c == 'r')
+        *Command = RIGHT;
+    else if (c == 'D' || c == 'd')
+        *Command = DN;
+    else if (c == 'U' || c == 'u')
+        *Command = UP;
+    else if (c == 'L' || c == 'l')
+        *Command = LEFT;
+    else if (c == 'C' || c == 'c')
+        *Command = CANCEL;
+    else if (c == 'G' || c == 'g') {
+        *Command = GO;
+        *CurrentCMD = NONE; //tells pull to start pulling
+    }
+    //normal command entry
+    if (*Command > NONE) {
+        printf("Got CMD\n");
+    }
+
+} //END DecodeUSerSwitch
+
+int checkCrash() {
+    TMR2 = 0;
+
+    LATBbits.LATB12 = 1;
+    __delay_ms(10);
+    LATBbits.LATB12 = 0;
+
+    while (!PORTBbits.RB5);
+    T2CONbits.TON = 1;
+    while (PORTBbits.RB5);
+    T2CONbits.TON = 0;
+    int a = TMR2;
+
+    a = a / 58.82; //Converts Time to Distance
+    a = a + 1; //Distance Calibration
+
+    if (a < 20)
+        return -1;
+
+    TMR2 = 0;
+
+    LATBbits.LATB11 = 1;
+    __delay_ms(10);
+    LATBbits.LATB11 = 0;
+
+    while (!PORTBbits.RB4);
+    T2CONbits.TON = 1;
+    while (PORTBbits.RB4);
+    T2CONbits.TON = 0;
+    a = TMR2;
+
+    a = a / 58.82; //Converts Time to Distance
+    a = a + 1; //Distance Calibration
+
+    if (a < 20)
+        return -1;
+
+    TMR2 = 0;
+
+    LATBbits.LATB10 = 1;
+    __delay_ms(10);
+    LATBbits.LATB10 = 0;
+
+    while (!PORTBbits.RB3);
+    T2CONbits.TON = 1;
+    while (PORTBbits.RB3);
+    T2CONbits.TON = 0;
+    a = TMR2;
+
+    a = a / 58.82; //Converts Time to Distance
+    a = a + 1; //Distance Calibration
+
+    if (a < 20)
+        return -1;
+
+    return 0;
+}
+
+void MPU6050_loop() {
+    TRISBbits.TRISB12 = 0;
+    TRISBbits.TRISB11 = 0;
+    TRISBbits.TRISB10 = 0;
+
+    TRISBbits.TRISB5 = 1;
+    TRISBbits.TRISB4 = 1;
+    TRISBbits.TRISB3 = 1;
+
+
+    PWM_Module_Initialize(&Left_Motor, &Right_Motor);
+
+    Left_Motor.Initialize(&Left_Motor);
+    Right_Motor.Initialize(&Right_Motor);
+
+    LATBbits.LATB14 = 1;
+    LATBbits.LATB15 = 1;
+
+    MPU6050_setXAccelOffset(-4733);
+    MPU6050_setYAccelOffset(928);
+    MPU6050_setZAccelOffset(990);
+    MPU6050_setXGyroOffset(-614);
+    MPU6050_setYGyroOffset(-16);
+    MPU6050_setZGyroOffset(-1);
+    //    
+    //    MPU6050_setFullScaleAccelRange(0);
+    //    MPU6050_setFullScaleGyroRange(0);
+
+    Right_Motor.dutyCyclePercentage = 25;
+    Right_Motor.UpdateDutyCycle(&Right_Motor);
+
+    Left_Motor.dutyCyclePercentage = 25;
+    Left_Motor.UpdateDutyCycle(&Left_Motor);
+
+    while (1) {
+        static int Demand, SubLoop;
+        static float Heading, HeadingTgt;
+        static bool Moving = false;
+        static uint8_t Command, CurrentCMD, CMDBuff[256];
+
+        float Reduction = 0.3;
+
+        SubLoop++;
+        if (!dmpReady)
+            return;
+        while (!mpuInterrupt && fifoCount < packetSize) {
+        }
+
+        GetHeading(&Heading, &HeadingTgt, Moving);
+        //PID(Hdg, HdgTgt, *Demand, kP, kI, kD, Moving)
+        PID(Heading, HeadingTgt, &Demand, Reduction * 15, Reduction * .08, 0.08, Moving);
+
+        if ((SubLoop % 2) == 0) {
+            DecodeUserSwitch(&Command, Moving, &CurrentCMD);
+            CheckIMU(&Command, Heading); // Look to see when the IMU has warmed up, issue a CMD when it has otherwise prevent start
+            //            if (checkCrash() == -1)
+            //            {
+            //                Moving = 0;
+            //            }
+            CompileUserCommands(CMDBuff, Command, &Moving);
+            PullNextUserCommand(CMDBuff, Moving, &CurrentCMD);
+            
+            
+            ExecuteCommand(&CurrentCMD, &Moving, &HeadingTgt, Demand, Command);
+            printf("%f\n", Heading);
+            //            printf("Heading %f, Heading Tgt: %f, Demand: %i, Time: %li, Command: %i Moving:%i\n", Heading, HeadingTgt, Demand, timez, Command, Moving);
+        }
+    }
+}

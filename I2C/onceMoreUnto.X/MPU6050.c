@@ -3432,7 +3432,6 @@ bool MPU6050_writeMemoryBlock(const uint8_t *data, uint16_t dataSize, uint8_t ba
     uint8_t *verifyBuffer;
     uint8_t *progBuffer;
     uint16_t i;
-    uint8_t j;
     if (verify)
         verifyBuffer = (uint8_t *)malloc(MPU6050_DMP_MEMORY_CHUNK_SIZE);
 
@@ -3499,7 +3498,7 @@ bool MPU6050_writeProgMemoryBlock(const uint8_t *data, uint16_t dataSize, uint8_
 bool MPU6050_writeDMPConfigurationSet(const uint8_t *data, uint16_t dataSize, bool useProgMem)
 {
     uint8_t *progBuffer, success, special;
-    uint16_t i, j;
+    uint16_t i;
 
     // config set data is a long string of blocks with the following structure:
     // [bank] [offset] [length] [byte[0], byte[1], ..., byte[length]]

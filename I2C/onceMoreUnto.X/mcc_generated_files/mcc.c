@@ -68,7 +68,7 @@
 #pragma config POSCMD = NONE    // Primary Oscillator Select->Primary Oscillator Disabled
 #pragma config WDTCLK = LPRC    // WDT Clock Source Select bits->WDT uses LPRC
 #pragma config OSCIOFCN = OFF    // OSCO Pin Configuration->OSCO/CLKO/RA3 functions as CLKO (FOSC/2)
-#pragma config FCKSM = CSDCMD    // Clock Switching and Fail-Safe Clock Monitor Configuration bits->Clock switching and Fail-Safe Clock Monitor are disabled
+#pragma config FCKSM = CSECMD    // Clock Switching and Fail-Safe Clock Monitor Configuration bits->Clock switching is enabled, Fail-Safe Clock Monitor is disabled
 #pragma config FNOSC = FRCPLL    // Initial Oscillator Select->Fast RC Oscillator with PLL module (FRCPLL)
 #pragma config ALTCMPI = CxINC_RB    // Alternate Comparator Input bit->C1INC is on RB13, C2INC is on RB9 and C3INC is on RA0
 #pragma config WDTCMX = WDTCLK    // WDT Clock Source Select bits->WDT clock source is determined by the WDTCLK Configuration bits
@@ -90,8 +90,8 @@
 void SYSTEM_Initialize(void)
 {
     PIN_MANAGER_Initialize();
-    INTERRUPT_Initialize();
     OSCILLATOR_Initialize();
+    INTERRUPT_Initialize();
     UART1_Initialize();
 }
 

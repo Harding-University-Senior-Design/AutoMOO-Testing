@@ -8,6 +8,7 @@
         "i2c.h": "c",
         "main.h": "c",
         "math.h": "c",
-        "mpu6050.h": "c"
+        "mpu6050.h": "c",
+        "uart1.h": "c"
     }
 }
