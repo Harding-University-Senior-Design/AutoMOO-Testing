@@ -8,12 +8,12 @@
 extern volatile bool mpuInterrupt;
 extern volatile unsigned long timez;
 
-void Init_MPU6050() {
+void Init_MPU6050()
+{
     clearI2C();
     __delay_us(1000);
 
     I2C_Init();
-
 
     I2C_WriteReg(0x68, 0x6B, 0x00);
     I2C_WriteReg(0x68, 0x6B, 0x01);
@@ -21,7 +21,8 @@ void Init_MPU6050() {
     __delay_us(100);
 }
 
-void IC1_Initialize(void) {
+void IC1_Initialize(void)
+{
     IC1CON1 = 0x0000;
     ANSBbits.ANSB13 = 0;
     TRISBbits.TRISB13 = 1;
@@ -29,7 +30,8 @@ void IC1_Initialize(void) {
 
     RPINR7bits.IC1R = 0b1101;
 
-    while (IC1CON1bits.ICBNE) {
+    while (IC1CON1bits.ICBNE)
+    {
         int junk = IC1BUF;
         junk = 2;
     }
@@ -47,33 +49,39 @@ void IC1_Initialize(void) {
     IEC0bits.IC1IE = true;
 }
 
-void __attribute__((__interrupt__, auto_psv)) _IC1Interrupt(void) {
-    if (IC1CON1bits.ICM == RISING_EDGE_TRIGGER_SETTING) {
+void __attribute__((__interrupt__, auto_psv)) _IC1Interrupt(void)
+{
+    if (IC1CON1bits.ICM == RISING_EDGE_TRIGGER_SETTING)
+    {
         mpuInterrupt = true;
     }
 
     IFS0bits.IC1IF = 0;
 }
 
-void __attribute__((__interrupt__, auto_psv)) _T1Interrupt(void) {
-    if (IFS0bits.T1IF == 1) {
+void __attribute__((__interrupt__, auto_psv)) _T1Interrupt(void)
+{
+    if (IFS0bits.T1IF == 1)
+    {
         IFS0bits.T1IF = 0; //reset the interrupt flag
         timez++;
     }
 }
 
-void TimerInit(void) {
-    PR1 = 0x07FF; //8191
-    IPC0bits.T1IP = 1; //set interrupt priority
+void TimerInit(void)
+{
+    PR1 = 0x07FF;           //8191
+    IPC0bits.T1IP = 1;      //set interrupt priority
     T1CONbits.TCKPS = 0x03; //timer prescaler bits
-    T1CONbits.TCS = 0; //using FOSC/2
+    T1CONbits.TCS = 0;      //using FOSC/2
 
     IFS0bits.T1IF = 0; //reset interrupt flag
     IEC0bits.T1IE = 1; //turn on the timer1 interrupt
     T1CONbits.TON = 1;
 }
 
-void read6SensorData(uint8_t addr, int *x, int *y, int *z) {
+void read6SensorData(uint8_t addr, int *x, int *y, int *z)
+{
     uint8_t data[6];
     I2C_ReadNReg(0x68, addr, &data[0], 6);
     *x = data[0] << 8 | data[1];
@@ -81,8 +89,29 @@ void read6SensorData(uint8_t addr, int *x, int *y, int *z) {
     *z = data[4] << 8 | data[5];
 }
 
-int main(void) {
+int main(void)
+{
     SYSTEM_Initialize();
+
+    bool buttonPressed = false;
+    while (!buttonPressed)
+    {
+        printf("Waiting for input: \n");
+
+        if ((UART1_StatusGet() & 0b1) == 0b1)
+        {
+            if (UART1_Read() == 'g')
+            {
+                printf("Got Command:\n");
+                buttonPressed = true;
+            }
+            else
+            {
+                printf("Command not recognized");
+            }
+        }
+    }
+
     Init_MPU6050();
 
     TimerInit();
@@ -94,13 +123,15 @@ int main(void) {
 
     MPU6050_address(0x68);
 
-    while (1) {
+    while (1)
+    {
 
-
-        if (b == 0x68) {
+        if (b == 0x68)
+        {
             MPU6050_setup();
 
-            while (true) {
+            while (true)
+            {
                 MPU6050_loop();
             }
         }
