@@ -1,7 +1,6 @@
 #define MPU6050_INCLUDE_DMP_MOTIONAPPS20
 
 #include "main.h"
-
 uint16_t dmpPacketSize;
 uint8_t *dmpPacketBuffer;
 
@@ -238,6 +237,8 @@ float ypr[3];               // [yaw, pitch, roll]   yaw/pitch/roll container and
 
 volatile bool mpuInterrupt = false; // indicates whether MPU interrupt pin has gone high
 volatile unsigned long timez;
+volatile unsigned long distance;
+
 
 void dmpDataReady()
 {
@@ -299,7 +300,6 @@ void MPU6050_setup()
     //    MPU6050_setZGyroOffset(-85);
     //    MPU6050_setZAccelOffset(1788); // 1688 factory default for my test chip
 
-    
     MPU6050_setXAccelOffset(-4733);
     MPU6050_setYAccelOffset(928);
     MPU6050_setZAccelOffset(990);
@@ -717,7 +717,7 @@ void GetHeading(float *Heading, float *HeadingTgt, bool Moving)
         MPU6050_dmpGetYawPitchRoll(ypr, &q, &gravity);
         //Serial.print("ypr\t");
         *Heading = (ypr[0] * 180 / M_PI) + 180;
-        //        printf("%f\n", (ypr[0] * 180 / M_PI) + 180);
+        // printf("%f\n", (ypr[0] * 180 / M_PI) + 180);
 
     } //done
 
@@ -738,7 +738,6 @@ int normalise(const int value, const int start, const int end)
 
 void DriveMotors(int PDrive, int SDrive, bool Moving)
 {
-
     int Mag;
 
     if (!Moving)
@@ -839,125 +838,6 @@ void PID(float Hdg, float HdgTgt, int *Demand, float kP, float kI, float kD, boo
 
 } //END getPID
 
-void CheckIMU(uint8_t *Command, float Heading)
-{
-    static int Init = 1, Count;
-    static float oHeading;
-
-    if (Init)
-    {
-        //If IMU not stable don't allow the robot to start navigating.
-        if (*Command == GO)
-            *Command = NONE;
-
-        Count++;
-        if (Count > 2)
-        {
-            Count = 0;
-            if (abs(Heading - oHeading) < 1)
-            {
-                Init = 0;
-                *Command = IMU_WARM;
-            }
-            else
-                oHeading = Heading;
-        }
-    }
-} //END Check IMU
-
-void ExecuteCommand(uint8_t *CurrentCMD, bool *Moving, float *HeadingTgt, float Demand, uint8_t Command, float Heading)
-{
-    static uint8_t state = 0;
-    static int ForeDmd, Time;
-    const int ExecuteDelay = 80;
-    if (*Moving)
-    {
-        if (state == 0)
-        {
-
-            switch (*CurrentCMD)
-            {
-            case UP:
-                ForeDmd = 500;
-                Time = ExecuteDelay * .7;
-                state++;
-                break;
-            case DN:
-                ForeDmd = -400;
-                Time = ExecuteDelay * .7;
-                state++;
-                break;
-            case LEFT:
-                *HeadingTgt -= 90;
-                Time = 15;
-                state++;
-                if (*HeadingTgt < 0)
-                    *HeadingTgt += 360;
-                break;
-            case RIGHT:
-                *HeadingTgt += 90;
-                Time = 15;
-                state++;
-                if (*HeadingTgt > 360)
-                    *HeadingTgt -= 360;
-                break;
-            case GO:
-                state++;
-                Time = ExecuteDelay;
-
-                break;
-            case NONE:
-                Right_Motor.dutyCyclePercentage = 0;
-                Right_Motor.UpdateDutyCycle(&Right_Motor);
-
-                Left_Motor.dutyCyclePercentage = 0;
-                Left_Motor.UpdateDutyCycle(&Left_Motor);
-
-                break;
-            } //END switch
-
-        } //END IF
-        else
-        {
-            if (Command == CRASH)
-                ForeDmd = 0;
-
-            // count down them move back to CMD execution state
-            Time--;
-
-            // if (*CurrentCMD == LEFT || *CurrentCMD == RIGHT)
-            // {
-            //     if (abs(*HeadingTgt - Heading) < 5)
-            //     {
-            //         printf("Canceled Early\n");
-            //         Time = 0;
-            //     }
-            // }
-
-            if ((Time == 0))
-            {
-                //we've reached the end of the program!
-                if (*CurrentCMD == GO)
-                {
-                    printf("Go found");
-                    *Moving = 0;
-                }
-                state = 0;
-                *CurrentCMD = NONE;
-                ForeDmd = 0;
-            }
-        }
-    }
-    else
-    {
-        //idle waiting for go cmd
-        state = 0;
-        //NOT Moving
-        ForeDmd = 0;
-    }
-    DriveMotors((Demand * -1) + ForeDmd, Demand + ForeDmd, *Moving);
-} //END ExecuteCommand
-
 void DecodeUserSwitch(uint8_t *Command, bool Moving, uint8_t *CurrentCMD)
 {
     if (Moving)
@@ -994,69 +874,24 @@ void DecodeUserSwitch(uint8_t *Command, bool Moving, uint8_t *CurrentCMD)
 
 } //END DecodeUSerSwitch
 
-int checkCrash()
+void doLeftTurn()
 {
-    TMR2 = 0;
+    LATBbits.LATB14 = 1;
+    LATBbits.LATB15 = 0;
+    Left_Motor.dutyCyclePercentage = 10;
+    Left_Motor.UpdateDutyCycle(&Left_Motor);
+    Right_Motor.dutyCyclePercentage = 10;
+    Right_Motor.UpdateDutyCycle(&Right_Motor);
+}
 
-    LATBbits.LATB12 = 1;
-    __delay_ms(10);
-    LATBbits.LATB12 = 0;
-
-    while (!PORTBbits.RB5)
-        ;
-    T2CONbits.TON = 1;
-    while (PORTBbits.RB5)
-        ;
-    T2CONbits.TON = 0;
-    int a = TMR2;
-
-    a = a / 58.82; //Converts Time to Distance
-    a = a + 1;     //Distance Calibration
-
-    if (a < 20)
-        return -1;
-
-    TMR2 = 0;
-
-    LATBbits.LATB11 = 1;
-    __delay_ms(10);
-    LATBbits.LATB11 = 0;
-
-    while (!PORTBbits.RB4)
-        ;
-    T2CONbits.TON = 1;
-    while (PORTBbits.RB4)
-        ;
-    T2CONbits.TON = 0;
-    a = TMR2;
-
-    a = a / 58.82; //Converts Time to Distance
-    a = a + 1;     //Distance Calibration
-
-    if (a < 20)
-        return -1;
-
-    TMR2 = 0;
-
-    LATBbits.LATB10 = 1;
-    __delay_ms(10);
-    LATBbits.LATB10 = 0;
-
-    while (!PORTBbits.RB3)
-        ;
-    T2CONbits.TON = 1;
-    while (PORTBbits.RB3)
-        ;
-    T2CONbits.TON = 0;
-    a = TMR2;
-
-    a = a / 58.82; //Converts Time to Distance
-    a = a + 1;     //Distance Calibration
-
-    if (a < 20)
-        return -1;
-
-    return 0;
+void doRightTurn()
+{
+    LATBbits.LATB14 = 0;
+    LATBbits.LATB15 = 1;
+    Left_Motor.dutyCyclePercentage = 10;
+    Left_Motor.UpdateDutyCycle(&Left_Motor);
+    Right_Motor.dutyCyclePercentage = 10;
+    Right_Motor.UpdateDutyCycle(&Right_Motor);
 }
 
 void MPU6050_loop()
@@ -1074,52 +909,103 @@ void MPU6050_loop()
     Left_Motor.Initialize(&Left_Motor);
     Right_Motor.Initialize(&Right_Motor);
 
-    LATBbits.LATB14 = 1;
-    LATBbits.LATB15 = 1;
+    Left_Motor.frequency = 20000;
+    Left_Motor.UpdateFrequency(&Left_Motor);
 
-    //    MPU6050_setFullScaleAccelRange(0);
-    //    MPU6050_setFullScaleGyroRange(0);
+    Right_Motor.frequency = 20000;
+    Right_Motor.UpdateFrequency(&Right_Motor);
 
-    Right_Motor.dutyCyclePercentage = 25;
-    Right_Motor.UpdateDutyCycle(&Right_Motor);
+    I2C_WriteReg(0x68,0x1C,0x18);
 
-    Left_Motor.dutyCyclePercentage = 25;
-    Left_Motor.UpdateDutyCycle(&Left_Motor);
+    bool recording = true;
+    float Reduction = 0.3;
+    static float Heading, HeadingTgt;
+
 
     while (1)
     {
-        static int Demand, SubLoop;
-        static float Heading, HeadingTgt;
-        static bool Moving = false;
-        static uint8_t Command, CurrentCMD, CMDBuff[256];
+        // printf("%i\n",distance);
+        static int Demand;
+                char c;
 
-        float Reduction = 0.3;
+        if ((UART1_StatusGet() & 0b1) == 0b1)
+        {
+            c = UART1_Read();
+        }
 
-        SubLoop++;
         if (!dmpReady)
             return;
         while (!mpuInterrupt && fifoCount < packetSize)
         {
-        }
+        };
 
-        GetHeading(&Heading, &HeadingTgt, Moving);
-        //PID(Hdg, HdgTgt, *Demand, kP, kI, kD, Moving)
-        PID(Heading, HeadingTgt, &Demand, Reduction * 15, Reduction * .08, 0, Moving);
 
-        if ((SubLoop % 2) == 0)
+        GetHeading(&Heading, &HeadingTgt, 1);
+
+        if (c == 'R' || c == 'r')
         {
-            DecodeUserSwitch(&Command, Moving, &CurrentCMD);
-            // CheckIMU(&Command, Heading); // Look to see when the IMU has warmed up, issue a CMD when it has otherwise prevent start
-            //            if (checkCrash() == -1)
-            //            {
-            //                Moving = 0;
-            //            }
-            CompileUserCommands(CMDBuff, Command, &Moving);
-            PullNextUserCommand(CMDBuff, Moving, &CurrentCMD);
+            GetHeading(&Heading, &HeadingTgt, 0);
+            
+            HeadingTgt += 87;
 
-            ExecuteCommand(&CurrentCMD, &Moving, &HeadingTgt, Demand, Command, Heading);
-            // printf("%f\n", Heading);
-            printf("Heading %f, Heading Tgt: %f, Command: %i Moving:%i\n", Heading, HeadingTgt, Command, Moving);
+            if (HeadingTgt > 360)
+                HeadingTgt -= 360;
+            while (floor(abs(HeadingTgt - Heading)) > 1)
+            {
+                doRightTurn();
+                GetHeading(&Heading, &HeadingTgt, 1);
+            }
         }
+        else if (c == 'L' || c == 'l')
+        {
+            GetHeading(&Heading, &HeadingTgt, 0);
+
+            HeadingTgt -= 87;
+            if (HeadingTgt < 0)
+                HeadingTgt += 360;
+            while (floor(abs(HeadingTgt - Heading)) > 1)
+            {
+                doLeftTurn();
+                GetHeading(&Heading, &HeadingTgt, 1);
+            }
+        }
+        else if (c == 'U' || c == 'u')
+        {
+            GetHeading(&Heading, &HeadingTgt, 0);
+            printf("%f %f\n", Heading, HeadingTgt);
+            
+            while (1) // change to make it distance from encoder
+            {
+                PID(Heading, HeadingTgt, &Demand, Reduction * 15, Reduction * .5, 0.5, 1);
+                DriveMotors((Demand * -1) + 500, Demand + 500, 1);
+
+
+                if ((UART1_StatusGet() & 0b1) == 0b1)
+                {
+                    c = UART1_Read();
+
+                    if (c == 'C' || c == 'c')
+                    {
+                        LATBbits.LATB14 = 1;
+                        LATBbits.LATB15 = 1;
+                        Left_Motor.dutyCyclePercentage = 0;
+                        Left_Motor.UpdateDutyCycle(&Left_Motor);
+                        Right_Motor.dutyCyclePercentage = 0;
+                        Right_Motor.UpdateDutyCycle(&Right_Motor);
+
+                        break;
+                    }
+                }
+
+                GetHeading(&Heading, &HeadingTgt, 1);
+            }
+        }
+
+        Left_Motor.dutyCyclePercentage = 0;
+        Left_Motor.UpdateDutyCycle(&Left_Motor);
+        Right_Motor.dutyCyclePercentage = 0;
+        Right_Motor.UpdateDutyCycle(&Right_Motor);
+        LATBbits.LATB14 = 1;
+        LATBbits.LATB15 = 1;//left
     }
 }

@@ -1,6 +1,8 @@
 #define FCY (_XTAL_FREQ / 2)
 #define FP  (_XTAL_FREQ / 2)
 
+#include <p24FJ128GA202.h>
+
 #include <xc.h>
 #include <math.h>
 #include <stdio.h>
@@ -10,7 +12,7 @@
 #include "mcc_generated_files/mcc.h"
 #include "MPU6050.h"
 #include "PWM.h"
-
+// #include <stdint.h>
 #define M_PI 3.14159
 
 

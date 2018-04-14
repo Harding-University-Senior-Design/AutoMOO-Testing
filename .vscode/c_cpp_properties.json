@@ -3,11 +3,11 @@
         {
             "name": "Win32",
             "includePath": [
+                "C:/Program Files (x86)/Microchip/xc16/v1.33/support/PIC24F/h/*",
                 "C:/Program Files (x86)/Microchip/xc16/v1.33/support/generic/h/*",
                 "C:/Program Files (x86)/Microchip/xc16/v1.33/include/*",
-                "C:/Program Files (x86)/Microchip/xc16/v1.33/support/PIC24F/h/*",
                 "C:/Program Files (x86)/Microchip/xc16/v1.33/support/PIC24F/inc/*",
-                "C:/Users/Adam/Documents/GitHub/AutoMOO-Testing/I2C/PIC_24_MPU_6050.X",
+                "C:/Users/Adam/Documents/GitHub/AutoMOO-Testing/I2C/onceMoreUnto.X",
                 "${workspaceRoot}"
             ],
             "defines": [
@@ -17,11 +17,11 @@
             "intelliSenseMode": "clang-x64",
             "browse": {
                 "path": [
+                    "C:/Program Files (x86)/Microchip/xc16/v1.33/support/PIC24F/h/*",
                     "C:/Program Files (x86)/Microchip/xc16/v1.33/support/generic/h/*",
                     "C:/Program Files (x86)/Microchip/xc16/v1.33/include/*",
-                    "C:/Program Files (x86)/Microchip/xc16/v1.33/support/PIC24F/h/*",
                     "C:/Program Files (x86)/Microchip/xc16/v1.33/support/PIC24F/inc/*",
-                    "C:/Users/Adam/Documents/GitHub/AutoMOO-Testing/I2C/PIC_24_MPU_6050.X",
+                    "C:/Users/Adam/Documents/GitHub/AutoMOO-Testing/I2C/onceMoreUnto.X",
                     "${workspaceRoot}"
                 ],
                 "limitSymbolsToIncludedHeaders": true,

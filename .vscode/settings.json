@@ -9,6 +9,9 @@
         "main.h": "c",
         "math.h": "c",
         "mpu6050.h": "c",
-        "uart1.h": "c"
+        "uart1.h": "c",
+        "string.h": "c",
+        "pwm.h": "c",
+        "p24fj128ga202.h": "c"
     }
 }

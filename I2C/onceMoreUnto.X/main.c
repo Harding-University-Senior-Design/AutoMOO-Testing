@@ -7,6 +7,7 @@
 
 extern volatile bool mpuInterrupt;
 extern volatile unsigned long timez;
+extern volatile unsigned long distance;
 
 void Init_MPU6050()
 {
@@ -49,6 +50,34 @@ void IC1_Initialize(void)
     IEC0bits.IC1IE = true;
 }
 
+void IC2_Initialize(void)
+{
+    IC1CON1 = 0x0000;
+    ANSBbits.ANSB2 = 0;
+    TRISBbits.TRISB2 = 1;
+    Nop();
+
+    RPINR7bits.IC2R = 0b1101;
+
+    while (IC2CON1bits.ICBNE)
+    {
+        int junk = IC2BUF;
+        junk = 2;
+    }
+
+    T1CON = 0b0000000000000000;
+    T1CONbits.TCKPS = 0b10;
+    T1CONbits.TCS = 0b0;
+    T1CONbits.TON = 1;
+    IC2CON2bits.SYNCSEL = 0b00000;
+    IC2CON1bits.ICTSEL = 0b100;
+    IC2CON1bits.ICI = 0b00;
+    IC2CON1bits.ICM = RISING_EDGE_TRIGGER_SETTING;
+    IPC1bits.IC2IP = 1;
+    IFS0bits.IC2IF = false;
+    IEC0bits.IC2IE = true;
+}
+
 void __attribute__((__interrupt__, auto_psv)) _IC1Interrupt(void)
 {
     if (IC1CON1bits.ICM == RISING_EDGE_TRIGGER_SETTING)
@@ -57,6 +86,17 @@ void __attribute__((__interrupt__, auto_psv)) _IC1Interrupt(void)
     }
 
     IFS0bits.IC1IF = 0;
+}
+
+void __attribute__((__interrupt__, auto_psv)) _IC2Interrupt(void)
+{
+    if (IC2CON1bits.ICM == FALLING_EDGE_TRIGGER_SETTING)
+    {
+        printf("interrupt hit\n");
+        distance++;  
+    }
+
+    IFS0bits.IC2IF = 0;
 }
 
 void __attribute__((__interrupt__, auto_psv)) _T1Interrupt(void)
@@ -113,7 +153,7 @@ int main(void)
     }
 
     Init_MPU6050();
-
+    // IC2_Initialize();
     TimerInit();
 
     uint8_t b;
