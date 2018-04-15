@@ -751,41 +751,43 @@ void DriveMotors(int PDrive, int SDrive, bool Moving)
     LimitInt(&SDrive, -1000, 1000);
 
     // ========= Port drive =========
-    Mag = abs(PDrive) * .205 + 25;
+    Mag = abs(PDrive) + 65;
     if (PDrive == 0)
         Mag = 0;
 
     if (PDrive < 0)
     {
         LATBbits.LATB15 = 0;
-        leftSpeed = normalise(255 - Mag, 0, 50);
+        leftSpeed = normalise(255 - Mag, 0, 100);
         Left_Motor.dutyCyclePercentage = leftSpeed;
         Left_Motor.UpdateDutyCycle(&Left_Motor);
     }
     else
     {
         LATBbits.LATB15 = 1;
-        leftSpeed = normalise(Mag, 0, 50);
+        leftSpeed = normalise(Mag, 0, 100);
         Left_Motor.dutyCyclePercentage = leftSpeed;
         Left_Motor.UpdateDutyCycle(&Left_Motor);
     }
 
     // ========= Stbd drive =========
-    Mag = abs(SDrive) * .205 + 25;
+//    Mag = abs(SDrive) * .505 + 25;
+        Mag = abs(SDrive) + 65;
+
     if (SDrive == 0)
         Mag = 0;
 
     if (SDrive < 0)
     {
         LATBbits.LATB14 = 0;
-        rightSpeed = normalise(255 - Mag, 0, 50);
+        rightSpeed = normalise(255 - Mag, 0, 100);
         Right_Motor.dutyCyclePercentage = rightSpeed;
         Right_Motor.UpdateDutyCycle(&Right_Motor);
     }
     else
     {
         LATBbits.LATB14 = 1;
-        rightSpeed = normalise(Mag, 0, 50);
+        rightSpeed = normalise(Mag, 0, 100);
         Right_Motor.dutyCyclePercentage = rightSpeed;
         Right_Motor.UpdateDutyCycle(&Right_Motor);
     }
@@ -878,9 +880,9 @@ void doLeftTurn()
 {
     LATBbits.LATB14 = 1;
     LATBbits.LATB15 = 0;
-    Left_Motor.dutyCyclePercentage = 10;
+    Left_Motor.dutyCyclePercentage = 60;
     Left_Motor.UpdateDutyCycle(&Left_Motor);
-    Right_Motor.dutyCyclePercentage = 10;
+    Right_Motor.dutyCyclePercentage = 60;
     Right_Motor.UpdateDutyCycle(&Right_Motor);
 }
 
@@ -888,9 +890,9 @@ void doRightTurn()
 {
     LATBbits.LATB14 = 0;
     LATBbits.LATB15 = 1;
-    Left_Motor.dutyCyclePercentage = 10;
+    Left_Motor.dutyCyclePercentage = 60;
     Left_Motor.UpdateDutyCycle(&Left_Motor);
-    Right_Motor.dutyCyclePercentage = 10;
+    Right_Motor.dutyCyclePercentage = 60;
     Right_Motor.UpdateDutyCycle(&Right_Motor);
 }
 
@@ -921,7 +923,16 @@ void MPU6050_loop()
     float Reduction = 0.3;
     static float Heading, HeadingTgt;
 
-
+//    while(1)
+//    {
+//                Left_Motor.dutyCyclePercentage = 100;
+//        Left_Motor.UpdateDutyCycle(&Left_Motor);
+//        Right_Motor.dutyCyclePercentage = 100;
+//        Right_Motor.UpdateDutyCycle(&Right_Motor);
+//        LATBbits.LATB14 = 1;
+//        LATBbits.LATB15 = 1;//left
+//    }
+    
     while (1)
     {
         // printf("%i\n",distance);
@@ -979,6 +990,7 @@ void MPU6050_loop()
                 PID(Heading, HeadingTgt, &Demand, Reduction * 15, Reduction * .5, 0.5, 1);
                 DriveMotors((Demand * -1) + 500, Demand + 500, 1);
 
+            printf("%f %f\n", Heading, HeadingTgt);
 
                 if ((UART1_StatusGet() & 0b1) == 0b1)
                 {
