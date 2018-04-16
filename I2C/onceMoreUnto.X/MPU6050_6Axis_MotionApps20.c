@@ -239,7 +239,6 @@ volatile bool mpuInterrupt = false; // indicates whether MPU interrupt pin has g
 volatile unsigned long timez;
 volatile unsigned long distance;
 
-
 void dmpDataReady()
 {
     mpuInterrupt = true;
@@ -771,8 +770,8 @@ void DriveMotors(int PDrive, int SDrive, bool Moving)
     }
 
     // ========= Stbd drive =========
-//    Mag = abs(SDrive) * .505 + 25;
-        Mag = abs(SDrive) + 65;
+    //    Mag = abs(SDrive) * .505 + 25;
+    Mag = abs(SDrive) + 65;
 
     if (SDrive == 0)
         Mag = 0;
@@ -905,6 +904,7 @@ void MPU6050_loop()
     TRISBbits.TRISB5 = 1;
     TRISBbits.TRISB4 = 1;
     TRISBbits.TRISB3 = 1;
+    uint16_t COMMANDS[1024];
 
     PWM_Module_Initialize(&Left_Motor, &Right_Motor);
 
@@ -917,27 +917,19 @@ void MPU6050_loop()
     Right_Motor.frequency = 20000;
     Right_Motor.UpdateFrequency(&Right_Motor);
 
-    I2C_WriteReg(0x68,0x1C,0x18);
+    I2C_WriteReg(0x68, 0x1C, 0x18);
 
     bool recording = true;
     float Reduction = 0.3;
     static float Heading, HeadingTgt;
+    bool recording = false;
+    bool doneRecording = false;
+    int numCommands = 0;
 
-//    while(1)
-//    {
-//                Left_Motor.dutyCyclePercentage = 100;
-//        Left_Motor.UpdateDutyCycle(&Left_Motor);
-//        Right_Motor.dutyCyclePercentage = 100;
-//        Right_Motor.UpdateDutyCycle(&Right_Motor);
-//        LATBbits.LATB14 = 1;
-//        LATBbits.LATB15 = 1;//left
-//    }
-    
     while (1)
     {
-        // printf("%i\n",distance);
         static int Demand;
-                char c;
+        char c;
 
         if ((UART1_StatusGet() & 0b1) == 0b1)
         {
@@ -950,67 +942,100 @@ void MPU6050_loop()
         {
         };
 
-
         GetHeading(&Heading, &HeadingTgt, 1);
 
-        if (c == 'R' || c == 'r')
+        if (!doneRecording)
         {
-            GetHeading(&Heading, &HeadingTgt, 0);
-            
-            HeadingTgt += 87;
-
-            if (HeadingTgt > 360)
-                HeadingTgt -= 360;
-            while (floor(abs(HeadingTgt - Heading)) > 1)
+            if (c == 'O' || c == 'o')
             {
-                doRightTurn();
-                GetHeading(&Heading, &HeadingTgt, 1);
+                recording = true;
             }
-        }
-        else if (c == 'L' || c == 'l')
-        {
-            GetHeading(&Heading, &HeadingTgt, 0);
-
-            HeadingTgt -= 87;
-            if (HeadingTgt < 0)
-                HeadingTgt += 360;
-            while (floor(abs(HeadingTgt - Heading)) > 1)
+            if (c == 'R' || c == 'r')
             {
-                doLeftTurn();
-                GetHeading(&Heading, &HeadingTgt, 1);
-            }
-        }
-        else if (c == 'U' || c == 'u')
-        {
-            GetHeading(&Heading, &HeadingTgt, 0);
-            printf("%f %f\n", Heading, HeadingTgt);
-            
-            while (1) // change to make it distance from encoder
-            {
-                PID(Heading, HeadingTgt, &Demand, Reduction * 15, Reduction * .5, 0.5, 1);
-                DriveMotors((Demand * -1) + 500, Demand + 500, 1);
-
-            printf("%f %f\n", Heading, HeadingTgt);
-
-                if ((UART1_StatusGet() & 0b1) == 0b1)
+                if (recording)
                 {
-                    c = UART1_Read();
+                    COMMANDS[numCommands] = 0xFFFF;
+                    numCommands++;
+                }
+                GetHeading(&Heading, &HeadingTgt, 0);
 
-                    if (c == 'C' || c == 'c')
+                HeadingTgt += 87;
+
+                if (HeadingTgt > 360)
+                    HeadingTgt -= 360;
+                while (floor(abs(HeadingTgt - Heading)) > 1)
+                {
+                    doRightTurn();
+                    GetHeading(&Heading, &HeadingTgt, 1);
+                }
+            }
+            else if (c == 'L' || c == 'l')
+            {
+                if (recording)
+                {
+                    COMMANDS[numCommands] = 0xEFFF;
+                    numCommands++;
+                }
+                GetHeading(&Heading, &HeadingTgt, 0);
+
+                HeadingTgt -= 87;
+                if (HeadingTgt < 0)
+                    HeadingTgt += 360;
+                while (floor(abs(HeadingTgt - Heading)) > 1)
+                {
+                    doLeftTurn();
+                    GetHeading(&Heading, &HeadingTgt, 1);
+                }
+            }
+            else if (c == 'U' || c == 'u')
+            {
+                GetHeading(&Heading, &HeadingTgt, 0);
+                printf("%f %f\n", Heading, HeadingTgt);
+
+                while (1) // change to make it distance from encoder
+                {
+                    PID(Heading, HeadingTgt, &Demand, Reduction * 15, Reduction * .5, 0.5, 1);
+                    DriveMotors((Demand * -1) + 500, Demand + 500, 1);
+
+                    printf("%f %f\n", Heading, HeadingTgt);
+
+                    if ((UART1_StatusGet() & 0b1) == 0b1)
                     {
-                        LATBbits.LATB14 = 1;
-                        LATBbits.LATB15 = 1;
-                        Left_Motor.dutyCyclePercentage = 0;
-                        Left_Motor.UpdateDutyCycle(&Left_Motor);
-                        Right_Motor.dutyCyclePercentage = 0;
-                        Right_Motor.UpdateDutyCycle(&Right_Motor);
+                        c = UART1_Read();
 
-                        break;
+                        if (c == 'C' || c == 'c')
+                        {
+                            LATBbits.LATB14 = 1;
+                            LATBbits.LATB15 = 1;
+                            Left_Motor.dutyCyclePercentage = 0;
+                            Left_Motor.UpdateDutyCycle(&Left_Motor);
+                            Right_Motor.dutyCyclePercentage = 0;
+                            Right_Motor.UpdateDutyCycle(&Right_Motor);
+
+                            break;
+                        }
                     }
+
+                    GetHeading(&Heading, &HeadingTgt, 1);
                 }
 
-                GetHeading(&Heading, &HeadingTgt, 1);
+                if (recording)
+                {
+                    COMMANDS[numCommands] = 0xFFFF;
+                    numCommands++;
+                }
             }
+        }
+        else
+        {
+            int i = 0;
+            printf("********************************\n");
+            for (i = 0; i < numCommands; i++)
+            {
+                printf("%i\n", COMMANDS[numCommands]);
+            }
+            printf("********************************\n");
+            
         }
 
         Left_Motor.dutyCyclePercentage = 0;
@@ -1018,6 +1043,6 @@ void MPU6050_loop()
         Right_Motor.dutyCyclePercentage = 0;
         Right_Motor.UpdateDutyCycle(&Right_Motor);
         LATBbits.LATB14 = 1;
-        LATBbits.LATB15 = 1;//left
+        LATBbits.LATB15 = 1; //left
     }
 }
