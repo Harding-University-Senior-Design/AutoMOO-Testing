@@ -904,7 +904,7 @@ void MPU6050_loop()
     TRISBbits.TRISB5 = 1;
     TRISBbits.TRISB4 = 1;
     TRISBbits.TRISB3 = 1;
-    uint16_t COMMANDS[1024];
+    static uint16_t COMMANDS[1024];
 
     PWM_Module_Initialize(&Left_Motor, &Right_Motor);
 
@@ -919,7 +919,6 @@ void MPU6050_loop()
 
     I2C_WriteReg(0x68, 0x1C, 0x18);
 
-    bool recording = true;
     float Reduction = 0.3;
     static float Heading, HeadingTgt;
     bool recording = false;
@@ -948,9 +947,15 @@ void MPU6050_loop()
         {
             if (c == 'O' || c == 'o')
             {
+                printf("Recording\n");
                 recording = true;
             }
-            if (c == 'R' || c == 'r')
+            else if (c == 'S' || c == 's')
+            {
+                printf("Stop Recording\n");
+                doneRecording = true;
+            }
+            else if (c == 'R' || c == 'r')
             {
                 if (recording)
                 {
@@ -1021,7 +1026,7 @@ void MPU6050_loop()
 
                 if (recording)
                 {
-                    COMMANDS[numCommands] = 0xFFFF;
+                    COMMANDS[numCommands] = distance;
                     numCommands++;
                 }
             }
@@ -1029,13 +1034,14 @@ void MPU6050_loop()
         else
         {
             int i = 0;
+
             printf("********************************\n");
             for (i = 0; i < numCommands; i++)
             {
-                printf("%i\n", COMMANDS[numCommands]);
+                printf("%X\n",COMMANDS[i]);
             }
             printf("********************************\n");
-            
+            doneRecording = false;
         }
 
         Left_Motor.dutyCyclePercentage = 0;
